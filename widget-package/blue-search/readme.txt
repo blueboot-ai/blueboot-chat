@@ -1,76 +1,130 @@
-=== Blue Search Chat (Embed + Launcher) ===
+=== BlueSearch AI Search and Chatbot ===
 Contributors: blueboot
-Tags: chat, embed, launcher, angular
+Tags: ai search, chatbot, customer support, website search, ecommerce
 Requires at least: 6.0
-Tested up to: 6.8
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.7
+Stable tag: 1.0.26
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-
-
-Short Description:
-Embeds the Blue Search Angular chat as a floating launcher or full-width embed via shortcodes.
+Embed the BlueSearch AI chat widget as a floating launcher or inline search assistant.
 
 == Description ==
-Blue Search Chat provides two shortcodes:
-- [blue-search-launcher] – a floating launcher button that opens the chat.
-- [blue-search-embed] – an inline, full-width embed.
 
-Assets are enqueued only when shortcodes are present.
-No API keys are accepted via shortcodes.
+BlueSearch adds an AI-powered search and chat widget to your WordPress site.
 
-== Assets & Downloads ==
-For advanced users and integrators, the plugin assets and installer are also available via our official CDN.
+The plugin provides two shortcodes:
 
-Latest release:
-https://cdn.blueboot.ai/blue-search/latest/
+* `[blue-search-launcher]` – Displays a floating launcher button that opens the chat.
+* `[blue-search-embed]` – Displays an inline, full-width AI chat/search assistant.
 
-This location contains:
-- The latest plugin ZIP installer
-- Versioned, production-ready JavaScript and static assets used by the chat widget
+You can also enable the launcher globally from the plugin settings page.
 
-These URLs are intended for manual installation, testing, or non-WordPress integrations.
-For most users, installing via the plugin ZIP is recommended.
+BlueSearch can help you:
+
+* Answer visitor questions using your website content.
+* Help users find pages, products and services.
+* Reduce repetitive customer support requests.
+* Add an AI assistant without modifying your WordPress theme.
+
+== External Service ==
+
+This plugin connects to the BlueSearch service provided by BlueBoot.
+
+The plugin sends the configured App ID, visitor chat messages, page context and technical request information to the BlueSearch service in order to generate AI responses and operate the chat widget.
+
+Service Provider: BlueBoot
+
+Website:
+https://www.blueboot.ai
+
+Privacy Policy:
+https://www.blueboot.ai/privacy-policy
+
+Terms of Service:
+https://www.blueboot.ai/terms
+
+No OpenAI API keys or BlueSearch API keys are exposed in the page markup.
+
+Website owners should update their own privacy policy to disclose their use of the BlueSearch service.
+
+== Source Code ==
+
+The complete source code and build tools used to generate this plugin are publicly available at:
+
+https://github.com/blueboot-ai/blueboot-chat
+
+Relevant directories include:
+
+* `widget-package/blue-search` – WordPress plugin.
+* `src` – Angular widget source.
+* `tools` – Build and packaging scripts.
+
+The JavaScript bundled into this plugin is generated from this source repository.
 
 == Installation ==
-0. (Optional) Download the latest installer from:
-   https://cdn.blueboot.ai/blue-search/latest/blue-search.zip
 
-1. Upload the plugin ZIP.
+1. Upload the plugin ZIP through **Plugins → Add New → Upload Plugin**.
 2. Activate the plugin.
-3. Add `[blue-search-launcher appid="your-app-id"]`
-   or `[blue-search-embed appid="your-app-id"]` to a page.
+3. Go to **Settings → BlueSearch**.
+4. Enter your BlueSearch App ID.
+5. Enable the global launcher or insert one of the following shortcodes:
+
+`[blue-search-launcher appid="your-app-id"]`
+
+or
+
+`[blue-search-embed appid="your-app-id"]`
 
 == Frequently Asked Questions ==
 
-= Does this plugin expose API keys? =
-No. The plugin does not accept or render API keys in markup.
+= Do I need a BlueSearch account? =
 
-= Where can I download the plugin or access the assets directly? =
-The latest plugin installer and compiled assets are available via our official CDN:
+Yes. You need a BlueSearch App ID provided by BlueBoot.
 
-https://cdn.blueboot.ai/blue-search/latest/
+= Does the plugin expose API keys? =
 
-This is useful for advanced integrations, testing, or non-WordPress environments.
-For standard WordPress usage, installing the plugin ZIP is recommended.
+No. The plugin does not expose API keys in WordPress pages or page markup.
+
+= Does this plugin connect to an external service? =
+
+Yes. The plugin connects to the BlueSearch service to process chat and search requests.
+
+= Can I use it with WooCommerce? =
+
+Yes. If your BlueSearch application has been configured with your WooCommerce catalogue, it can help visitors discover products through natural-language search.
+
+== Screenshots ==
+
+1. Floating BlueSearch launcher.
+2. Inline BlueSearch embed.
+3. Plugin settings page.
 
 == Changelog ==
+
+= 1.0.26 =
+
+* Prepared WordPress.org release.
+* Removed the custom update mechanism from the WordPress.org package.
+* Improved settings page.
+* Improved external service disclosure.
+* Added public source code reference.
+* Updated bundled widget assets.
+
 = 1.0.7 =
-* Made ready for production system
-* Added attribute for running with dev environment
-  Add `[blue-search-launcher appid="your-app-id" env="DEV"]`
-  or `[blue-search-embed appid="your-app-id" env="DEV"]`
+
+* Production release.
+* Added DEV environment support.
 
 = 1.0.6 =
-* Hardened asset loading
-* Improved shortcode sanitization
-* Removed manual textdomain loader per Plugin Check
+
+* Hardened asset loading.
+* Improved shortcode sanitisation.
+* Removed manual textdomain loader.
 
 == Upgrade Notice ==
-= 1.0.7 =
-Production-ready release with support for DEV environment.
 
-= 1.0.6 =
-Security and compatibility improvements.
+= 1.0.26 =
+
+WordPress.org release with updated assets, improved disclosure and public source code reference.
