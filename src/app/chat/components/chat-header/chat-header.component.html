@@ -1,0 +1,76 @@
+<header class="widget-header"
+        [class.is-full]="mode === 'full'"
+        [style.background]="headerBg === null ? 'transparent' : (headerBg || null)">
+
+  <button #btnMax
+          type="button"
+          class="widget-header__max"
+          [attr.aria-pressed]="mode === 'full' ? 'true' : 'false'"
+          [attr.aria-label]="mode === 'full' ? t('restore') : t('expand')"
+          [attr.title]="mode === 'full' ? t('restore') : t('expand')"
+          (click)="onToggleFullscreen(btnMax)">
+    <svg data-icon="max" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M8 4H4v4M16 4h4v4M4 16v4h4M16 20h4v-4"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"/>
+    </svg>
+
+    <svg data-icon="restore" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 9h8v8H7zM9 7h8v8"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <div class="widget-header__title">
+    <span class="header-chip"
+          [class.round]="headerIsRound"
+          [style.background]="headerLogoBg || null"
+          *ngIf="(logo && logoVisible) || headerLogoInitialLocal || headerLogoBg">
+
+      <img *ngIf="logoVisible && logo"
+           class="brandmark"
+           [src]="logo"
+           [alt]="logoAlt || titleText"
+           (error)="logoError.emit()"
+           [style.borderRadius]="headerIsRound ? '50%' : '6px'"/>
+
+      <span *ngIf="(!logo || !logoVisible) && headerLogoInitialLocal"
+            class="header-initial">
+        {{ titleText.slice(0, 1) }}
+      </span>
+    </span>
+
+    <span class="title-text">{{ titleText }}</span>
+  </div>
+
+  <div class="widget-header__actions">
+    <button type="button"
+            class="widget-header__new"
+            (click)="newChat.emit()"
+            [attr.aria-label]="t('newChat')"
+            [attr.title]="t('newChat')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 5v14M5 12h14"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <button type="button"
+            class="widget-header__close"
+            [attr.aria-label]="t('closeChat')"
+            [attr.title]="t('closeChat')"
+            (click)="close.emit()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+</header>

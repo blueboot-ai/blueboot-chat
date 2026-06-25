@@ -1,0 +1,86 @@
+<div class="msg-feedback-wrap">
+  <div class="msg-feedback"
+       [attr.aria-label]="t('feedbackGroupLabel') || 'Response feedback'">
+
+    <button type="button"
+            class="feedback-btn feedback-btn--with-text"
+            [class.active]="message.feedback?.status === 'positive'"
+            [disabled]="message.feedback?.submitted"
+            (click)="onFeedback('positive')"
+            [attr.aria-label]="t('feedbackPositive') || 'Helpful'"
+            [attr.title]="t('feedbackPositive') || 'Helpful'">
+
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9 4.03 9 9 9Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"/>
+        <path d="M8.5 14c.9 1.2 2.1 1.8 3.5 1.8s2.6-.6 3.5-1.8"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"/>
+        <circle cx="9" cy="10" r="1" fill="currentColor"/>
+        <circle cx="15" cy="10" r="1" fill="currentColor"/>
+      </svg>
+
+      <span class="feedback-btn__label">
+        {{ t('feedbackPositive') || 'Helpful' }}
+      </span>
+    </button>
+
+    <button type="button"
+            class="feedback-btn feedback-btn--with-text"
+            [class.active]="message.feedback?.status === 'neutral'"
+            [disabled]="message.feedback?.submitted"
+            (click)="onFeedback('neutral')"
+            [attr.aria-label]="t('feedbackNeutral') || 'Neutral'"
+            [attr.title]="t('feedbackNeutral') || 'Neutral'">
+
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9 4.03 9 9 9Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"/>
+        <path d="M8.5 14h7"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"/>
+        <circle cx="9" cy="10" r="1" fill="currentColor"/>
+        <circle cx="15" cy="10" r="1" fill="currentColor"/>
+      </svg>
+
+      <span class="feedback-btn__label">
+        {{ t('feedbackNeutral') || 'Neutral' }}
+      </span>
+    </button>
+
+    <button type="button"
+            class="feedback-btn feedback-btn--with-text"
+            [class.active]="message.feedback?.status === 'negative'"
+            [disabled]="message.feedback?.submitted"
+            (click)="onFeedback('negative')"
+            [attr.aria-label]="t('feedbackNegative') || 'Not helpful'"
+            [attr.title]="t('feedbackNegative') || 'Not helpful'">
+
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9 4.03 9 9 9Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"/>
+        <path d="M8.5 15.2c.9-1 2.1-1.5 3.5-1.5s2.6.5 3.5 1.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"/>
+        <circle cx="9" cy="10" r="1" fill="currentColor"/>
+        <circle cx="15" cy="10" r="1" fill="currentColor"/>
+      </svg>
+
+      <span class="feedback-btn__label">
+        {{ t('feedbackNegative') || 'Not helpful' }}
+      </span>
+    </button>
+  </div>
+</div>

@@ -1,0 +1,141 @@
+:host {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.composer {
+  flex: 0 0 auto;
+}
+
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+
+  border: 1px solid var(--bb-input-border);
+  background: var(--bb-input-bg);
+  border-radius: 16px;
+
+  padding: 8px 8px 8px 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .04);
+  align-self: stretch;
+}
+
+.input {
+  flex: 1 1 auto;
+  border: none;
+  outline: none;
+  resize: none;
+  max-height: 420px;
+  line-height: 1.4;
+  background: transparent;
+  color: var(--bb-text);
+
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.send {
+  margin-right: 4px;
+  border: none;
+
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+
+  display: grid;
+  place-items: center;
+
+  cursor: pointer;
+
+  transition: transform .05s ease, opacity .2s ease, background .15s ease, color .15s ease;
+
+  background: var(--bb-send-bg);
+  color: var(--bb-send-fg);
+}
+
+.send:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.send:active {
+  transform: translateY(1px);
+}
+
+.hint {
+  text-align: center;
+  margin-top: 8px;
+  margin-bottom: 6px;
+  color: var(--bb-muted);
+}
+
+.hint-api {
+  font-size: 8px;
+  line-height: 1.2;
+  opacity: .75;
+  margin-bottom: 4px;
+}
+
+.hint-link {
+  display: inline-block;
+  color: var(--bb-text);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.hint-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: .9;
+}
+
+.hint-madeby {
+  margin-top: 2px;
+  font-size: 6px;
+  font-weight: 600;
+  opacity: .55;
+  line-height: 1.1;
+}
+
+@media (max-width: 600px) {
+  .input-wrap {
+    align-items: center;
+    padding: 6px 6px 6px 10px;
+    border-radius: 14px;
+    gap: 6px;
+  }
+
+  .input {
+    font-size: 16px;
+  }
+
+  .send {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    align-self: center;
+    box-shadow: 0 6px 18px rgba(2, 6, 23, .10);
+  }
+
+  .send:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .send:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .hint {
+    font-size: 11px;
+  }
+
+  .hint .hint-link {
+    font-size: 10px;
+  }
+}

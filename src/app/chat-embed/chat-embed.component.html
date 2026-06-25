@@ -1,0 +1,283 @@
+
+<section class="embed-shell" [style.borderColor]="appOrWp?.headerBg || '#ffffff'" *ngIf="embedUiReady">
+  <div class="embed-card" [style.backgroundColor]="appOrWp?.backColor || '#ffffff'">
+
+    <!-- Header -->
+    <div class="embed-header" *ngIf="!isEmpty">
+      <button
+        type="button"
+        class="btn-icon embed-header__close close-chat-btn"
+        (click)="newConversation()"
+        [attr.title]="t('closeChat') || 'Close chat'"
+        [attr.aria-label]="t('closeChat') || 'Close chat'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- History -->
+    <div class="embed-history" *ngIf="!isEmpty" #historyRef>
+      <div
+        class="msg-row"
+        *ngFor="let m of messages$(); trackBy: trackById; let i = index"
+        [class.msg-user]="m.role === 'user'"
+        [class.msg-assistant]="m.role === 'assistant'"
+        [class.msg-error]="m.role === 'error'"
+      >
+        <div class="msg-bubble">
+
+          <div class="msg-toolbar" *ngIf="m.role === 'assistant' && (m.content || m.info)">
+            <button
+              type="button"
+              class="btn-icon copy-btn"
+              (click)="copyText(m.content || '', i)"
+              [attr.title]="(copiedIndex === i ? t('copied') : t('copy')) || (copiedIndex === i ? 'Copied' : 'Copy')"
+              [attr.aria-label]="(copiedIndex === i ? t('copied') : t('copy')) || (copiedIndex === i ? 'Copied' : 'Copy')"
+            >
+              <ng-container *ngIf="copiedIndex === i; else copyIconEmbed">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </ng-container>
+              <ng-template #copyIconEmbed>
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                  <rect x="9" y="3" width="11" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                  <rect x="4" y="7" width="11" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+              </ng-template>
+            </button>
+          </div>
+
+          <div class="msg-header">
+            <span class="msg-label">{{ labelFor(m.role) }}</span>
+          </div>
+
+          <div class="msg-body">
+            <span *ngIf="!m.content && m.info" class="msg-info">{{ m.info }}</span>
+            <ng-container [ngSwitch]="render">
+              <markdown *ngSwitchCase="'markdown'" class="text" [data]="m.content"></markdown>
+              <div *ngSwitchDefault class="text" [innerHTML]="m.content | linkify"></div>
+            </ng-container>
+          </div>
+
+          <!-- Feedback -->
+          <div
+            class="msg-feedback-wrap"
+            *ngIf="m.role === 'assistant' && m.content && m.completed === true && (appOrWp?.feedbackEnabled ?? feedbackEnabled)"
+          >
+            <div class="msg-feedback" [attr.aria-label]="t('feedbackGroupLabel') || 'Response feedback'">
+              <button
+                type="button"
+                class="feedback-btn feedback-btn--with-text"
+                [class.active]="m.feedback?.status === 'positive'"
+                [disabled]="m.feedback?.submitted"
+                (click)="onAssistantFeedback(m, 'positive')"
+                [attr.aria-label]="t('feedbackPositive') || 'Helpful'"
+                [attr.title]="t('feedbackPositive') || 'Helpful'">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9 4.03 9 9 9Z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+                  <path d="M8.5 14c.9 1.2 2.1 1.8 3.5 1.8s2.6-.6 3.5-1.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                  <circle cx="9" cy="10" r="1" fill="currentColor"/>
+                  <circle cx="15" cy="10" r="1" fill="currentColor"/>
+                </svg>
+
+                <span class="feedback-btn__label">
+                  {{ t('feedbackPositive') || 'Helpful' }}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                class="feedback-btn feedback-btn--with-text"
+                [class.active]="m.feedback?.status === 'neutral'"
+                [disabled]="m.feedback?.submitted"
+                (click)="onAssistantFeedback(m, 'neutral')"
+                [attr.aria-label]="t('feedbackNeutral') || 'Neutral'"
+                [attr.title]="t('feedbackNeutral') || 'Neutral'">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9 4.03 9 9 9Z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+                  <path d="M8.5 14h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                  <circle cx="9" cy="10" r="1" fill="currentColor"/>
+                  <circle cx="15" cy="10" r="1" fill="currentColor"/>
+                </svg>
+
+                <span class="feedback-btn__label">
+                  {{ t('feedbackNeutral') || 'Neutral' }}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                class="feedback-btn feedback-btn--with-text"
+                [class.active]="m.feedback?.status === 'negative'"
+                [disabled]="m.feedback?.submitted"
+                (click)="onAssistantFeedback(m, 'negative')"
+                [attr.aria-label]="t('feedbackNegative') || 'Not helpful'"
+                [attr.title]="t('feedbackNegative') || 'Not helpful'">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9 4.03 9 9 9Z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+                  <path d="M8.5 15.2c.9-1 2.1-1.5 3.5-1.5s2.6.5 3.5 1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                  <circle cx="9" cy="10" r="1" fill="currentColor"/>
+                  <circle cx="15" cy="10" r="1" fill="currentColor"/>
+                </svg>
+
+                <span class="feedback-btn__label">
+                  {{ t('feedbackNegative') || 'Not helpful' }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Input row -->
+    <div class="embed-input-row" [class.has-chat]="!isEmpty" [style.backgroundColor]="appOrWp?.backColor || '#ffffff'">
+      <div class="embed-input-shell">
+
+        <div class="embed-logo">
+          <ng-container *ngIf="computedLogoVideo() as v; else imgLogo">
+            <video
+              class="embed-logo-video"
+              [attr.poster]="logoVideoPoster || null"
+              [attr.src]="v"
+              [autoplay]="logoVideoAutoplay"
+              [loop]="logoVideoLoop"
+              [muted]="logoVideoMuted"
+              playsinline
+              preload="metadata"
+              (error)="onLogoVideoError()"
+            ></video>
+          </ng-container>
+
+          <ng-template #imgLogo>
+            <ng-container *ngIf="computedLogo() as logo">
+              <img
+                class="embed-logo-img"
+                [src]="logo"
+                [alt]="logoAlt || 'Logo'"
+                (error)="onLogoError()"
+                *ngIf="logoVisible"
+              />
+            </ng-container>
+          </ng-template>
+        </div>
+
+        <div class="embed-input-wrapper">
+          <textarea
+            #inputRef
+            class="embed-textarea"
+            [placeholder]="welcomeText || ''"
+            [(ngModel)]="userMessage"
+            (input)="onEmbedInputChange()"
+            (keydown)="onComposerKeydown($event)"
+            (focus)="onInputFocus()"
+            (blur)="onInputBlur()"
+            (mousedown)="onInputMouseDown()"
+            rows="1"
+            [style.backgroundColor]="appOrWp?.inputBg || '#ffffff'"
+            [style.borderColor]="appOrWp?.inputBorder || 'transparent'"
+          ></textarea>
+        </div>
+
+        <div class="embed-buttons">
+          <button
+            type="button"
+            class="btn-icon send-btn"
+            [disabled]="!userMessage.trim() || isSending"
+            (click)="send()"
+            [attr.title]="t('send') || 'Send'"
+            [attr.aria-label]="t('send') || 'Send'"
+          >
+            <ng-container *ngIf="sendIconReady">
+              <img [src]="sendIconReady" alt="" aria-hidden="true" />
+            </ng-container>
+          </button>
+
+          <button
+            *ngIf="!isEmpty"
+            type="button"
+            class="btn-icon new-chat-btn"
+            (click)="newConversation()"
+            [attr.title]="t('newChat') || 'New chat'"
+            [attr.aria-label]="t('newChat') || 'New chat'"
+          >
+            <span class="new-chat-icon" aria-hidden="true">+</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="embed-inline-footer" *ngIf="!isEmpty">
+        <div class="embed-inline-api">
+          {{ t('madeByPrefix') }}
+        </div>
+
+        <a class="embed-inline-brand"
+           href="http://blueboot.ai"
+           target="_blank"
+           rel="noopener noreferrer">BlueBoot</a>
+      </div>
+
+      <div class="embed-suggestions"
+           *ngIf="showSuggestions && isEmpty && !userMessage.trim() && suggestions.length">
+
+        <button
+          type="button"
+          class="suggestion-chip"
+          *ngFor="let s of suggestions"
+          (mousedown)="onSuggestionMouseDown()"
+          (click)="onSuggestionClick(s)">
+          {{ s }}
+        </button>
+      </div>
+
+    </div>
+
+    <div *ngIf="selectionActionVisible"
+         [style.left.px]="selectionActionX"
+         [style.top.px]="selectionActionY"
+         style="position:fixed;z-index:2147483647;transform:translateX(-50%);">
+      <button type="button"
+              (mousedown)="$event.preventDefault()"
+              (click)="useSelectedAssistantText()"
+              style="border:none;border-radius:999px;padding:6px 10px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.18);background:#111827;color:#fff;font:inherit;">
+        {{ t('useText') || 'Use text' }}
+      </button>
+    </div>
+
+    <!-- Feedback modal -->
+    <div *ngIf="feedbackModalOpen" class="feedback-modal-backdrop">
+      <div class="feedback-modal" (click)="$event.stopPropagation()">
+        <div class="feedback-title">
+          {{ t('feedbackTitle') || 'Tell us what was wrong' }}
+        </div>
+
+        <div class="feedback-subtitle">
+          {{ t('feedbackSubtitle') || 'Leave a message if you want, or just submit directly.' }}
+        </div>
+
+        <textarea
+          [(ngModel)]="feedbackComment"
+          rows="4"
+          [attr.placeholder]="t('feedbackPlaceholder') || 'Leave a message about why the response was not good...'"
+          class="feedback-input"></textarea>
+
+        <div class="feedback-actions">
+          <button type="button" (click)="submitNegativeFeedback()">
+            {{ t('feedbackSubmit') || 'Submit' }}
+          </button>
+          <button type="button" (click)="closeFeedbackModal()">
+            {{ t('feedbackCancel') || 'Cancel' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,52 @@
+/* --- Safe page defaults --- */
+html, body { margin:0; padding:0; overflow-x:hidden; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+img, video, iframe { max-width:100%; height:auto; }
+
+:root{
+  /* Layout */
+  --bbc-side-offset: 16px;         /* distance from screen edges */
+  --bbc-gap: 12px;                  /* gap between launcher and compact card */
+  --bbc-compact-width: 360px;
+  --bbc-compact-height: 520px;
+  --bbc-z: 999999;
+
+  /* Border / look (compact) */
+  --bbc-border-width: 1px;
+  --bbc-border-color: #e5e7eb;
+  --bbc-corner: 16px;
+  --bbc-shadow: 0 8px 28px rgba(2,6,23,0.08);
+
+  /* Fullscreen padding (usually 0); set to e.g. 24px to inset the big view */
+  --bbc-full-padding: 0;
+}
+
+/* Launcher hover polish */
+#bbc-launcher:hover { box-shadow: 0 10px 34px rgba(0,0,0,.2); background:#fafafa; }
+@media (prefers-reduced-motion: reduce){ #bbc-launcher{ transition:none } }
+
+/* Chat wrapper: bordered card in compact mode */
+#bbc-wrapper{
+  border: var(--bbc-border-width) solid var(--bbc-border-color);
+  border-radius: var(--bbc-corner);
+  background: #fff;
+  box-shadow: var(--bbc-shadow);
+  overflow: hidden; /* clip rounded corners */
+  z-index: var(--bbc-z);
+}
+
+/* When maximized: no border, no radius (true full-bleed) */
+#bbc-wrapper.bbc-full{
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;       /* or keep #fff if you prefer */
+  padding: var(--bbc-full-padding);
+}
+
+.bb-embed-host {
+  margin: 24px auto;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}

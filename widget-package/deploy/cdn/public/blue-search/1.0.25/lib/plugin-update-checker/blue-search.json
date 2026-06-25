@@ -1,0 +1,14 @@
+{
+  "name": "Blue Search Chat (Embed + Launcher)",
+  "slug": "blue-search",
+  "version": "1.0.25",
+  "download_url": "https://blueboot-cdn.web.app/blue-search/latest/blue-search-1.0.25.zip",
+  "requires": "6.0",
+  "tested": "6.5",
+  "requires_php": "7.4",
+  "last_updated": "2026-01-24",
+  "sections": {
+    "description": "Embeds the Blue Search Angular chat as a floating launcher or a full-width embed.",
+    "changelog": "### 1.0.11\n- Initial auto-update release.\n"
+  }
+}

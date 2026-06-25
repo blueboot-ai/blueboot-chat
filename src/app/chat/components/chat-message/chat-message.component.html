@@ -1,0 +1,85 @@
+<div class="msg"
+     [class.me]="message.role === 'user'"
+     [class.ai]="message.role === 'assistant'"
+     [class.err]="message.role === 'error'">
+
+  <div class="avatar"
+       [class.user]="message.role === 'user'"
+       [style.background]="avatarBgFor(message.role) || ''">
+
+    <img *ngIf="avatarSrc(message.role) as a"
+         [src]="a"
+         alt=""
+         class="avatar-img"
+         referrerpolicy="no-referrer"
+         crossorigin="anonymous"
+         decoding="async" />
+  </div>
+
+  <div class="bubble">
+    <div class="bubble-toolbar"
+         *ngIf="message.role === 'assistant' && (message.content || message.info)">
+      <button class="copy-btn"
+              type="button"
+              (click)="onCopy()"
+              [attr.aria-label]="copiedIndex === index ? t('copied') : t('copy')">
+
+        <ng-container *ngIf="copiedIndex === index; else copyIcon">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"/>
+          </svg>
+        </ng-container>
+
+        <ng-template #copyIcon>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <rect x="9" y="3" width="11" height="14" rx="2"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"/>
+            <rect x="4" y="7" width="11" height="14" rx="2"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"/>
+          </svg>
+        </ng-template>
+
+        <span class="copy-label">
+          {{ copiedIndex === index ? t('copied') : t('copy') }}
+        </span>
+      </button>
+    </div>
+
+    <div class="who">{{ labelFor(message.role) }}</div>
+
+    <div *ngIf="message.info"
+         class="text thinking"
+         [innerHTML]="message.info | linkify"
+         aria-live="polite"
+         aria-atomic="true">
+    </div>
+
+    <ng-container [ngSwitch]="render">
+      <markdown *ngSwitchCase="'markdown'"
+                class="text"
+                [data]="message.content">
+      </markdown>
+
+      <div *ngSwitchDefault
+           class="text"
+           [innerHTML]="message.content | linkify">
+      </div>
+    </ng-container>
+
+    <app-chat-feedback
+      *ngIf="message.role === 'assistant' && message.content && message.completed === true && feedbackEnabled"
+      [message]="message"
+      [t]="t"
+      (feedback)="onFeedback($event)">
+    </app-chat-feedback>
+  </div>
+</div>

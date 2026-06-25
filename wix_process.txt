@@ -1,0 +1,55 @@
+1/
+npx http-server ".\dist\blueboot-chat\browser" -p 8080 --cors
+
+2/
+$exe = Get-ChildItem "$env:LOCALAPPDATA" -Recurse -Filter cloudflared.exe -ErrorAction SilentlyContinue |
+       Select-Object -First 1 -ExpandProperty FullName
+& $exe tunnel --url http://localhost:8080
+
+
+
+widget.html inside browse
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BlueBoot Widget</title>
+
+  <link rel="stylesheet" href="styles-BSQJD4EC.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="styles-BSQJD4EC.css"></noscript>
+  <script type="module" src="polyfills-5CFQRCPP.js"></script>
+  <script type="module" src="main-GIH3N5VM.js"></script>
+
+  <style>
+    html,body { margin:0; padding:0; background:transparent; }
+    blueboot-chat, blueboot-input { display:block; width:100%; max-width:100%; }
+  </style>
+</head>
+<body>
+  <div id="mount"></div>
+  <script>
+    const p = new URLSearchParams(location.search);
+    const variant = (p.get('variant') || 'chat').toLowerCase(); // chat | input
+    const tag = variant === 'input' ? 'blueboot-input' : 'blueboot-chat';
+    const el = document.createElement(tag);
+    el.id = 'bb';
+
+    // pass common inputs to whichever element we created
+    ['userid','appid','gptid','assistandid','apikey','title','mode','render'].forEach(k=>{
+      if (p.has(k)) el.setAttribute(k, p.get(k));
+    });
+
+    document.getElementById('mount').appendChild(el);
+  </script>
+</body>
+</html>
+
+
+
+5/
+Chat widget:
+https://<your-public-host>/widget.html?variant=chat&appid=nav-ads&mode=compact
+
+Normal input:
+https://<your-public-host>/widget.html?variant=input&appid=nav-ads

@@ -1,0 +1,58 @@
+<footer #composerRef class="composer">
+  <div class="input-wrap">
+    <textarea #inputRef
+              class="input"
+              [ngModel]="userMessage"
+              (ngModelChange)="onMessageChange($event)"
+              name="message"
+              rows="1"
+              (keydown)="keydownEvent.emit($event)"
+              (input)="inputEvent.emit()"></textarea>
+
+    <button class="send"
+            type="button"
+            [disabled]="isSending || !userMessage.trim()"
+            (click)="sendMessage.emit()"
+            [attr.title]="t('send')"
+            [style.background]="sendIconReady ? 'transparent' : (appOrWp?.sendBg || '#111827')"
+            [style.color]="appOrWp?.sendFg || '#ffffff'"
+            style="border:none;display:inline-flex;align-items:center;justify-content:center">
+      <ng-container *ngIf="sendIconReady; else fallbackArrow">
+        <img [src]="sendIconReady"
+             alt=""
+             class="send-logo"
+             style="width:20px;height:20px;display:block" />
+      </ng-container>
+
+      <ng-template #fallbackArrow>
+        <svg width="18" height="18" viewBox="0 0 24 24"
+             fill="currentColor"
+             stroke="currentColor"
+             [attr.fill]="appOrWp?.sendFg || null"
+             [attr.stroke]="appOrWp?.sendFg || null"
+             aria-hidden="true">
+          <path d="M3 11L21 3L13 21L11 13L3 11Z"
+                stroke-width="2"
+                stroke-linejoin="round"/>
+        </svg>
+      </ng-template>
+    </button>
+  </div>
+
+  <div class="hint">
+    <div class="hint-api">
+      {{ t('madeByPrefix') }}
+    </div>
+
+    <a href="https://www.blueboot.ai"
+       target="_blank"
+       rel="noopener noreferrer"
+       class="hint-link">
+      {{ t('madeByLinkLabel') || t('madeByLink') || 'BlueSearch' }}
+    </a>
+
+    <div class="hint-madeby">
+      {{ t('madeByFooter') || 'Made by © Blueboot' }}
+    </div>
+  </div>
+</footer>

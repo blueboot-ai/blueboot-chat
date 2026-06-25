@@ -1,0 +1,116 @@
+<!-- src/app/widget/chat/chat.component.html -->
+
+<div class="chat"
+     [style.--bb-back]="appOrWp?.backColor === null ? 'transparent' : (appOrWp?.backColor ?? '#fff')"
+     [style.--bb-header-bg]="appOrWp?.headerBg === null ? 'transparent' : null"
+     [style.--bb-input-bg]="appOrWp?.inputBg === null ? 'transparent' : (appOrWp?.inputBg ?? null)"
+     [style.--bb-input-border]="appOrWp?.inputBorder === null ? 'transparent' : (appOrWp?.inputBorder ?? null)"
+     [style.--bb-send-bg]="appOrWp?.sendBg === null ? 'transparent' : (appOrWp?.sendBg ?? null)"
+     [style.--bb-send-fg]="appOrWp?.sendFg === null ? 'transparent' : (appOrWp?.sendFg ?? null)"
+     [class.empty]="isEmpty"
+     [class.compact]="mode !== 'full'"
+     [class.full]="mode === 'full'"
+     [attr.dir]="dir">
+
+  <app-chat-header
+    [mode]="mode"
+    [title]="title"
+    [displayName]="displayName"
+    [logo]="computedLogo()"
+    [logoAlt]="logoAlt"
+    [logoVisible]="logoVisible"
+    [headerIsRound]="headerIsRound"
+    [headerLogoBg]="headerLogoBg"
+    [headerLogoInitialLocal]="headerLogoInitialLocal"
+    [headerBg]="appOrWp?.headerBg"
+    [t]="t.bind(this)"
+    (toggleFullscreen)="onToggleFullscreenClick($event)"
+    (close)="onCloseClick()"
+    (newChat)="newConversation()"
+    (logoError)="onLogoError()">
+  </app-chat-header>
+
+  <div #historyRef class="history">
+    <div *ngIf="welcomeText && isEmpty && !isComposing" class="welcome">
+      {{ welcomeText }}
+    </div>
+
+    <app-chat-suggestions
+      [suggestions]="suggestions"
+      [showSuggestions]="!!showSuggestions"
+      [isEmpty]="isEmpty"
+      [isComposing]="isComposing"
+      [composerEl]="composerRef?.nativeElement"
+      [historyEl]="historyRef"
+      [t]="t.bind(this)"
+      (applySuggestion)="applySuggestionText($event)">
+    </app-chat-suggestions>
+
+
+    <app-chat-message
+      #msgItem
+      *ngFor="let m of messages$(); trackBy: trackById; let i = index"
+      [message]="m"
+      [index]="i"
+      [render]="render"
+      [feedbackEnabled]="feedbackEnabled"
+      [copiedIndex]="copiedIndex"
+      [t]="t.bind(this)"
+      [labelFor]="labelFor.bind(this)"
+      [avatarSrc]="avatarSrc.bind(this)"
+      [avatarBgFor]="avatarBgFor.bind(this)"
+      (copy)="copyText($event.content, $event.index)"
+      (feedback)="onAssistantFeedback($event.message, $event.type)">
+    </app-chat-message>
+  </div>
+
+  <app-chat-composer
+    [(userMessage)]="userMessage"
+    [isSending]="isSending"
+    [sendIconReady]="sendIconReady"
+    [appOrWp]="appOrWp"
+    [t]="t.bind(this)"
+    (keydownEvent)="onComposerKeydown($event)"
+    (inputEvent)="onTextareaInput()"
+    (sendMessage)="send()">
+  </app-chat-composer>
+
+  <div *ngIf="selectionActionVisible"
+       class="selection-action"
+       [style.left.px]="selectionActionX"
+       [style.top.px]="selectionActionY">
+    <button type="button"
+            (mousedown)="$event.preventDefault()"
+            (click)="useSelectedAssistantText()">
+      {{ t('useText') || 'Use text' }}
+    </button>
+  </div>
+
+  <div *ngIf="feedbackModalOpen" class="feedback-modal-backdrop">
+    <div class="feedback-modal" (click)="$event.stopPropagation()">
+      <div class="feedback-title">
+        {{ t('feedbackTitle') || 'Tell us what was wrong' }}
+      </div>
+
+      <div class="feedback-subtitle">
+        {{ t('feedbackSubtitle') || 'Leave a message if you want, or just submit directly.' }}
+      </div>
+
+      <textarea
+        [(ngModel)]="feedbackComment"
+        rows="4"
+        [attr.placeholder]="t('feedbackPlaceholder') || 'Leave a message about why the response was not good...'"
+        class="feedback-input"></textarea>
+
+      <div class="feedback-actions">
+        <button type="button" (click)="submitNegativeFeedback()">
+          {{ t('feedbackSubmit') || 'Submit' }}
+        </button>
+
+        <button type="button" (click)="closeFeedbackModal()">
+          {{ t('feedbackCancel') || 'Cancel' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

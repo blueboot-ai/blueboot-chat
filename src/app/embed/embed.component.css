@@ -1,0 +1,17 @@
+/* Page wrapper: keep chat centered and not huge */
+.bb-embed-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.bb-embed-inner {
+  width: 100%;
+}
+
+/* Ensure the custom element behaves like a full-width block */
+blue-search-inner-embed {
+  display: block;
+  width: 100%;
+}

@@ -1,0 +1,45 @@
+{
+  "name": "blueboot-chat",
+  "version": "1.0.30",
+  "private": true,
+  "engines": {
+    "node": ">=20 <23"
+  },
+  "scripts": {
+    "start": "ng serve",
+    "start:elements": "ng serve",
+    "build": "ng build",
+    "build:wp": "npm run build && node tools/deploy-wp.js",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+
+
+    "package:release": "node tools/package-release.js",
+    "deploy:cdn": "node tools/deploy-cdn.js",
+    "release": "npm run package:release && npm run deploy:cdn"
+
+  },
+  "dependencies": {
+    "@angular/animations": "20.2.1",
+    "@angular/common": "20.2.1",
+    "@angular/compiler": "20.2.1",
+    "@angular/core": "20.2.1",
+    "@angular/elements": "20.2.1",
+    "@angular/forms": "20.2.1",
+    "@angular/platform-browser": "20.2.1",
+    "@angular/platform-browser-dynamic": "20.2.1",
+    "@angular/router": "20.2.1",
+    "ngx-markdown": "20.1.0",
+    "rxjs": "7.8.1",
+    "tslib": "2.6.3",
+    "zone.js": "^0.15.0"
+  },
+  "devDependencies": {
+    "@angular/build": "20.2.1",
+    "@angular/cli": "20.2.1",
+    "@angular/compiler-cli": "20.2.1",
+    "archiver": "^7.0.1",
+    "ssh2-sftp-client": "^12.0.1",
+    "typescript": "5.9.3"
+  }
+}

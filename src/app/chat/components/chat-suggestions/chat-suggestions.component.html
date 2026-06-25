@@ -1,0 +1,81 @@
+<div class="suggestions-wrap"
+     *ngIf="shouldShowSuggestions">
+
+  <div #suggestionsBar class="suggestions-bar" role="list">
+    <button
+      #suggBtn
+      *ngFor="let s of suggestions; let i = index; trackBy: trackBySuggestion"
+      type="button"
+      class="suggestion-btn"
+      role="listitem"
+      [class.is-hidden]="visibleSuggestionCount > 0 && i >= visibleSuggestionCount"
+      (click)="onApplySuggestion(s)">
+      {{ s }}
+    </button>
+
+    <button
+      *ngIf="hiddenSuggestionsCount > 0"
+      type="button"
+      class="suggestion-btn more-btn"
+      (click)="openSuggestionsModal()">
+      {{ t('more') || 'More' }} ({{ hiddenSuggestionsCount }})
+    </button>
+  </div>
+</div>
+
+<div class="sug-modal-backdrop"
+     *ngIf="suggestionsModalOpen"
+     (click)="closeSuggestionsModal()"
+     aria-hidden="true">
+</div>
+
+<div class="sug-modal"
+     *ngIf="suggestionsModalOpen"
+     role="dialog"
+     aria-modal="true"
+     [attr.aria-label]="t('suggestions') || 'Suggestions'"
+     (click)="$event.stopPropagation()">
+
+  <div class="sug-modal-header">
+    <div class="sug-modal-title">
+      {{ t('suggestions') || 'Suggestions' }}
+    </div>
+
+    <button type="button"
+            class="sug-modal-close"
+            (click)="closeSuggestionsModal()"
+            [attr.aria-label]="t('close') || 'Close'">
+      ✕
+    </button>
+  </div>
+
+  <div class="sug-modal-body">
+    <button
+      *ngFor="let s of pagedSuggestions; trackBy: trackBySuggestion"
+      type="button"
+      class="suggestion-btn"
+      (click)="onApplySuggestion(s); closeSuggestionsModal()">
+      {{ s }}
+    </button>
+  </div>
+
+  <div class="sug-modal-footer" *ngIf="modalTotalPages > 1">
+    <button type="button"
+            class="sug-page-btn"
+            (click)="prevSuggestionsPage()"
+            [disabled]="modalPage <= 0">
+      ‹ Prev
+    </button>
+
+    <div class="sug-page-ind">
+      {{ modalPage + 1 }} / {{ modalTotalPages }}
+    </div>
+
+    <button type="button"
+            class="sug-page-btn"
+            (click)="nextSuggestionsPage()"
+            [disabled]="modalPage >= (modalTotalPages - 1)">
+      Next ›
+    </button>
+  </div>
+</div>

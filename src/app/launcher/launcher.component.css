@@ -1,0 +1,69 @@
+:host {
+  all: initial;
+  contain: none;
+
+  --bbc-side-offset: 16px;
+  --bbc-gap: 12px;
+  --bbc-compact-width: 360px;
+  --bbc-compact-height: 520px;
+  --bbc-z: 2147483647;
+  --bbc-floating-lift: 32px;
+  --bbc-launcher-size: 64px;
+
+  font-family: var(
+    --bb-font-family,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  font-size: var(--bb-font-size, 14px);
+  line-height: var(--bb-line-height, 1.45);
+}
+
+#bbc-launcher {
+  transition: opacity 0.18s ease;
+  user-select: none;
+}
+
+#bbc-launcher[aria-hidden="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#bbc-launcher[aria-hidden="false"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#bbc-launcher:hover {
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.2);
+  background: #fafafa;
+}
+
+#bbc-wrapper {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(2, 6, 23, 0.08);
+  overflow: hidden;
+}
+
+#bbc-wrapper.bbc-full {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: #fff;
+}
+
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+}
+
+video::-webkit-media-controls {
+  display: none !important;
+}
