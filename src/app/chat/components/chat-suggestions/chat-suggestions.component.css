@@ -2,14 +2,20 @@
   display: block;
 }
 
+/* Adjacent vertical margins collapse, so the gap above is whichever is larger —
+   this one or .welcome's bottom margin in chat.component.css. Both had to come
+   down; changing one alone would have done nothing. */
 .suggestions-wrap {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin: 10px 0 8px;
-  overflow: hidden;
+  margin: 4px 0 8px;
 }
 
+/* No overflow of its own. The chips are content in .history, the panel's
+   scroll container, so a list too long for the panel scrolls there together
+   with the welcome text above it — one frame, one scrollbar, no surface of
+   its own. Clipping here is what forced the old measure-and-collapse pass. */
 .suggestions-bar {
   width: 100%;
   max-width: 100%;
@@ -20,11 +26,11 @@
   align-items: flex-start;
   justify-content: flex-start;
 
-  gap: 8px;
+  /* Tight: the chips are a list to scan, and every row of gap is a chip that
+     could have been on screen instead. */
+  gap: 5px;
   padding: 0 12px;
   box-sizing: border-box;
-
-  overflow: hidden;
 }
 
 .suggestion-btn {
@@ -32,131 +38,27 @@
   min-width: 0;
   max-width: 100%;
 
+  /* Wraps onto as many lines as the text needs. It used to be truncated at the
+     chip's edge mid-sentence, because a taller chip cost height the fitting
+     pass was trying to save. Nothing is counting height now. */
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
-
-  text-overflow: clip;
-  overflow: visible;
+  text-align: left;
 
   border: 1px solid var(--bb-border);
-  border-radius: 12px;
-  padding: 6px 10px;
-  background: var(--bb-back);
+  border-radius: 10px;
+  padding: 4px 8px;
+  /* The assistant's own bubble colour: a suggestion is a line it is offering
+     to say, so it should read as coming from the same side of the
+     conversation rather than sitting on the panel background. */
+  background: var(--bb-bubble-bg);
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(var(--bb-font-size) * 0.929);
   line-height: 1.25;
   color: var(--bb-text);
 }
 
-.suggestion-btn.more-btn {
-  flex: 0 0 100%;
-  max-width: 220px;
-  margin: 4px auto 0;
-  text-align: center;
-
-  border-style: dashed;
-  border-radius: 9999px;
-  font-weight: 700;
-  background: rgba(15, 23, 42, 0.04);
-}
-
 .suggestion-btn:hover {
   background: rgba(15, 23, 42, 0.04);
-}
-
-.is-hidden {
-  display: none !important;
-}
-
-.sug-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(2, 6, 23, .45);
-  z-index: 9998;
-}
-
-.sug-modal {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: min(520px, calc(100vw - 28px));
-  max-height: min(70vh, 560px);
-  background: var(--bb-back);
-  border: 1px solid rgba(0, 0, 0, .08);
-  border-radius: 14px;
-  box-shadow: 0 22px 70px rgba(2, 6, 23, .35);
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  color: var(--bb-text);
-}
-
-.sug-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, .06);
-}
-
-.sug-modal-title {
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.sug-modal-close {
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  color: var(--bb-muted);
-}
-
-.sug-modal-close:hover {
-  background: rgba(17, 24, 39, .06);
-  color: var(--bb-text);
-}
-
-.sug-modal-body {
-  padding: 12px;
-  overflow: auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.sug-modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-top: 1px solid rgba(0, 0, 0, .06);
-}
-
-.sug-page-btn {
-  border: 1px solid var(--bb-border);
-  background: var(--bb-back);
-  border-radius: 10px;
-  padding: 6px 10px;
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--bb-text);
-}
-
-.sug-page-btn:disabled {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-.sug-page-ind {
-  font-size: 12px;
-  opacity: .75;
-  font-weight: 700;
-  color: var(--bb-muted);
 }

@@ -1,0 +1,235 @@
+/* One message, shared by both surfaces. Ported from the embed's .msg-* rules —
+   see message.component.ts for why that version won.
+
+   NOT here, deliberately: .msg-body and .msg-info. bb-message-body ships no
+   stylesheet of its own, and emulated encapsulation would compile those rules
+   to `.msg-body[_ngcontent-X]` while the body's elements carry no such
+   attribute. They only work from a ShadowDom host, which is why they still live
+   in chat.component.css and embed.component.css. Moving them here would look
+   tidier and would silently stop applying. */
+
+:host {
+  display: block;
+}
+
+/* 1px between messages. Deliberately not --bb-box-gap: that variable also sets
+   the space between the last message and the composer, which should stay
+   generous — tightening the conversation must not push the two together.
+
+   1px rather than a half: a fractional margin rounds to 0 or 1 depending on
+   device pixel ratio, so the gaps come out visibly uneven down the column. */
+.msg-row {
+  display: flex;
+  margin-bottom: 1px;
+}
+
+:host(:last-child) .msg-row {
+  margin-bottom: 0;
+}
+
+/* ---- The avatar column, when there is one ------------------------------- */
+
+.msg-avatar {
+  flex: 0 0 auto;
+  width: 1.75em;
+  height: 1.75em;
+  margin-right: 0.5em;
+  border-radius: 999px;
+  overflow: hidden;
+  align-self: flex-start;
+}
+
+.msg-avatar-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* ---- The bubble --------------------------------------------------------- */
+
+/* The message colour, not a hardcoded white: backColor and messageColor are
+   both configurable, and #ffffff meant every bubble stayed white on a widget
+   the customer had tinted — the one thing that made a coloured widget look
+   broken rather than themed.
+
+   No border and no shadow. Four outlines were tried in the embed (a fixed grey,
+   a mix of currentColor, the inverse at 32%, the inverse at full) and each was
+   wrong on some palette. A bubble is told apart by its fill. */
+.msg-bubble {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  border-radius: var(--bb-box-radius, 0.75em);
+  padding: var(--bb-box-pad-y, 0.625em) var(--bb-box-pad-x, 0.875em);
+  background: var(--bb-msg-back, #ffffff);
+  font-family: inherit;
+  line-height: inherit;
+  font-size: 0.93em;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+/* The visitor's bubble takes the same fill as the assistant's.
+   It used to be tinted, on the reasoning that the visitor's turn should be
+   distinguishable. What actually separates them is the alignment and the row
+   gap, which do the job without inventing a colour; every derived tint
+   eventually looked wrong against some palette a customer had configured.
+
+   Left as an explicit rule rather than deleted, so the intent is legible: this
+   bubble is *deliberately* the same as the others. Give it a fill of its own
+   only if that becomes a configured colour rather than a computed one. */
+.msg-row.msg-user .msg-bubble {
+  background: var(--bb-msg-back, #ffffff);
+}
+
+/* The one bubble that keeps a colour of its own: an error is not a variation on
+   the theme, and it should look the same wherever the widget is embedded. */
+.msg-row.msg-error .msg-bubble {
+  background: #fee2e2;
+}
+
+/* ---- The name line ------------------------------------------------------ */
+
+.msg-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: 0.375em;
+
+  /* No rule under the header. There was one — a faint border across the bubble
+     — to separate the name and time from the body. With the bubbles carrying
+     the message colour as a solid fill the header is already distinct, and the
+     line only added a second horizontal edge inside a box that already has one:
+     each bubble read as two stacked boxes. The gap is what separates them
+     now. */
+  margin-bottom: 0.1875em;
+}
+
+/* Full size, like every other line in the feed.
+   It was smaller once, which is a reasonable idea for a label and the wrong one
+   here: shrinking the only text that says who is speaking made the thing a
+   visitor scans for the hardest thing to read. Weight and colour already
+   separate it from the body — that is what quiet is for, not size. */
+.msg-label {
+  font-weight: 600;
+
+  /* Stronger than --bb-muted, but not the full text colour. Muted is pitched
+     for text a visitor reads past — a placeholder, an attribution. This is a
+     heading, and at that strength it faded into the background instead of
+     sitting quietly against it.
+
+     Its own mix rather than a change to --bb-muted, which is shared with the
+     placeholder and the timestamps; none of those asked to come forward. First
+     line is the fallback where color-mix is unsupported. */
+  color: var(--bb-muted);
+  color: color-mix(in srgb, currentColor 82%, transparent);
+}
+
+/* Same size as the label beside it. Two type sizes on one baseline row is a
+   wobble the eye catches before it reads either of them. It stays the quieter
+   of the two on weight and opacity, which is the whole difference wanted. */
+.msg-send-status {
+  font-weight: 400;
+  color: var(--bb-muted);
+  opacity: 0.8;
+}
+
+/* The "to" between the sender and the destination.
+   em so it tracks the row's type rather than staying a fixed glyph while the
+   words around it grow.
+
+   align-self overrides the row's baseline alignment: an SVG has no baseline of
+   its own, so the browser puts its bottom edge on the text baseline and the
+   arrow floats above the words. Centring it on the line box is what puts it
+   between them. */
+.msg-via-arrow {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  align-self: center;
+  opacity: 0.75;
+}
+
+/* The in-flight spinner on the visitor's own message header.
+   An arc, not a full ring: a circle with no gap does not appear to turn.
+   dasharray 14/42 leaves roughly a quarter drawn against a 56-unit
+   circumference — enough shape to read as a circle, enough gap to read as
+   motion. Sized and coloured like the arrow beside it so the row's pieces stay
+   one line at any configured font size. */
+.msg-spinner {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  align-self: center;
+  opacity: 0.75;
+
+  animation: bb-msg-spin 0.9s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes bb-msg-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* A visitor who has asked for less motion still needs to know the message is in
+   flight, so the mark stays and only the spinning stops. Removing the element
+   would leave them with no indication at all — the accessible answer here is a
+   still icon, not a missing one. */
+@media (prefers-reduced-motion: reduce) {
+  .msg-spinner {
+    animation: none;
+  }
+}
+
+/* ---- Copy ---------------------------------------------------------------- */
+
+.msg-toolbar {
+  position: absolute;
+  top: 0.375em;
+  right: 0.375em;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+
+.copy-btn {
+  /* A <button> does not inherit font-size, so without this every em below
+     resolves against the browser's own control default. */
+  font: inherit;
+
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125em 0.375em;
+  border-radius: 0.375em;
+
+  /* Derived, not the fixed #9ca3af it used to be: the button sits on the
+     bubble, which carries the message colour, so a pale grey disappeared on any
+     dark one. */
+  color: var(--bb-muted);
+  opacity: .85;
+  transition: color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+.copy-btn svg {
+  display: block;
+  width: max(1em, 12px);
+  height: max(1em, 12px);
+}
+
+.copy-btn:hover {
+  opacity: 1;
+  background: rgba(127, 127, 127, .14);
+}
+
+.copy-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

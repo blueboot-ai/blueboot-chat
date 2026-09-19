@@ -1,28 +1,299 @@
-<div class="bb-embed-wrap">
-  <div class="bb-embed-inner">
-    <!-- Inline chat used as “search bar + conversation” -->
-    <div class="bb-embed-wrap">
-      <div class="bb-embed-inner">
-        <blue-search-inner-embed
-          id="bb-chat-embed"
-          [title]="title"
-          [persist]="persist"
-          [welcomeText]="welcomeText"
-          [logoSrc]="logoSrc"
-          [logoAlt]="logoAlt"
-          [appid]="appid"
-          [userid]="userid"
-          [gptid]="gptid"
-          [assistandid]="assistandid"
-          [lang]="lang"
-          [translations]="translations"
-          [headerIsRound]="headerIsRound"
-          [headerLogoInitialLocal]="headerLogoInitialLocal"
-          [headerLogoBg]="headerLogoBg"
-          [assetsBase]="assetsBase"
-        >
-        </blue-search-inner-embed>
+<!-- Holds the inline box's space while the panel is above it, so opening and
+     closing the overlay never reflows the host page. Height is measured from
+     the real box the first time we leave it; the CSS fallback covers the case
+     where we come back straight into the overlay and never saw it inline.
+
+     Not in popup mode. There the inline box is never shown — the panel opens
+     floating on load and the widget dismisses to nothing — so reserving space
+     for it would leave an empty band in the page beside a floating panel,
+     which is the one thing a popup is supposed to avoid. The host element
+     contributes no layout at all in that mode. -->
+<div class="embed-placeholder"
+     *ngIf="isOverlay && startMode !== 'popup'"
+     aria-hidden="true"
+     [style.height.px]="inlineHeightPx || null"></div>
+
+<!-- fontColor lands here, on the shell, rather than on the card inside it.
+     The frame ring is painted by this element's own ::after and reads
+     currentColor from it, so a colour set further in would reach the text and
+     miss the edge around it.
+
+     Both `color` and `--bb-text`: rules that inherit (most text, and every
+     currentColor-derived border and tint) follow the first, while the handful
+     that name var(--bb-text) explicitly — the message label, the title bar —
+     need the second. Null when unset, so the CSS defaults stand. -->
+<section class="embed-shell"
+         #embedShell
+         [class.is-overlay]="isOverlay"
+         [style.color]="fontColor || appOrWp?.fontColor || null"
+         [style.--bb-text]="fontColor || appOrWp?.fontColor || null"
+         *ngIf="embedUiReady">
+  <!-- Both the direct backgroundColor (for .embed-card itself) and the
+       --bb-back custom property (so descendants that read var(--bb-back) —
+       .embed-input-shell, the feedback modal and its buttons — pick up the
+       same configured color too, instead of staying stuck at the CSS
+       default #ffffff the way they did before). Mirrors how chat.component
+       drives the whole panel purely off the CSS var. -->
+  <div class="embed-card"
+       [class.bb-frame-dark]="inputFrameIsDark"
+       [style.backgroundColor]="backColor || appOrWp?.backColor || DEFAULT_THEME.backColor"
+       [style.--bb-back]="backColor || appOrWp?.backColor || DEFAULT_THEME.backColor"
+       [style.--bb-surface-text]="surfaceText"
+       [style.--bb-input-chrome]="inputChromeText"
+       [style.--bb-msg-back]="messageColor || appOrWp?.messageColor || appOrWp?.inputBg || null">
+
+    <!-- Title bar. Overlay only: collapsed, the widget is a plain input box on
+         someone else's page, and a header on that would be the widget
+         announcing itself uninvited. Open, it is a panel covering their page —
+         and a panel with no name is one the visitor cannot identify.
+
+         Transparent rather than a coloured band like the launcher panel's
+         header: the embed is meant to sit inside a host page's own design. A
+         hairline is enough to separate it from the conversation. -->
+
+    <!-- The header doubles as the drag handle. pointerdown, not a click: a
+         drag is a press-and-move, and waiting for a click would mean the panel
+         only jumps after release.
+
+         The buttons inside stop the event themselves (see their own
+         pointerdown) so pressing New chat or Hide never starts a drag. -->
+    <div class="embed-header"
+         *ngIf="isOverlay"
+         [class.draggable]="windowControlsVisible"
+         (pointerdown)="beginWindowDrag($event, 'move')"
+         (dblclick)="resetWindowBox()"
+         [attr.title]="windowControlsVisible ? (t('windowDragHint') || 'Drag to move · double-click to reset') : null">
+      <!-- Language, left of the title and away from the controls on the right.
+           Those two — new chat and hide — end or put away the conversation,
+           and this only changes a setting; keeping it on the opposite side
+           means a mis-hit costs a menu rather than the conversation. It is
+           also always present, unlike both of them, so the header keeps a
+           fixed left edge whether or not there is a conversation to discard.
+
+           stopPropagation on pointerdown for the same reason the buttons on
+           the right do: this header is the drag handle, and opening the menu
+           must not start dragging the window. -->
+      <!-- Dropped entirely when the host declared a language: that is the
+           site's decision, and a picker beside it would let a visitor
+           contradict the embed permanently. See langLocked. -->
+      <app-lang-picker *ngIf="!langLocked"
+                       class="embed-header-lang"
+                       [t]="t.bind(this)"
+                       [current]="lang"
+                       (pointerdown)="$event.stopPropagation()"
+                       (picked)="chooseLang($event)">
+      </app-lang-picker>
+
+      <span class="embed-header-title">{{ title || displayName }}</span>
+
+      <!-- Moved up from beside the send button, where it sat one tap from
+           "send" — an easy mis-hit for a control that discards the
+           conversation. Still hidden while there is nothing to discard. -->
+      <button
+        *ngIf="!isEmpty"
+        type="button"
+        class="embed-header-btn"
+        (pointerdown)="$event.stopPropagation()"
+        (click)="requestNewConversation()"
+        [attr.title]="t('newChat') || 'New chat'"
+        [attr.aria-label]="t('newChat') || 'New chat'"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <!-- A page with a pencil: "start a new one", not "+" (which reads
+               as "add" — this button replaces the conversation). -->
+          <path d="M12.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6.5"
+                stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M17.6 3.4a1.98 1.98 0 0 1 2.8 2.8L13.6 13l-3.4.8.8-3.4 6.6-7z"
+                stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <!-- Moved up from the footer line. This is where a visitor looks to put
+           a panel away — the same corner every chat widget and dialog puts it
+           in — and on the footer it sat beside "new chat", where the two
+           irreversible-looking controls were easy to confuse. -->
+      <button
+        type="button"
+        class="embed-collapse"
+        (pointerdown)="$event.stopPropagation()"
+        (click)="collapseOverlay()"
+        [attr.title]="t('hideChat') || 'Hide chat'"
+        [attr.aria-label]="t('hideChat') || 'Hide chat'"
+      >
+        <!-- Chevron down onto a line: the panel goes down and out of the way,
+             and the line is where it goes. A bare chevron is the same glyph a
+             page uses for "scroll down" and "expand" — the opposite action. -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M8 8l4 4 4-4M5 18h14"
+                stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- History -->
+    <!-- The conversation lives in the overlay and nowhere else: collapsed, the
+         widget is the plain input box it started as, whatever is in storage. -->
+    <div class="embed-history" *ngIf="isOverlay && !isEmpty" #historyRef>
+      <app-message
+        #msgItem
+        *ngFor="let m of messages$(); trackBy: trackById; let i = index"
+        [message]="m"
+        [index]="i"
+        [render]="render"
+        [t]="t.bind(this)"
+        [copiedIndex]="copiedIndex"
+        [remembered]="rememberedContact"
+        [feedbackVisible]="feedbackVisibleFor(m)"
+        [labelFor]="labelFor.bind(this)"
+        [sentViaLabel]="sentViaLabel.bind(this)"
+        [sendStatusLabel]="sendStatusLabel.bind(this)"
+        [receivedLabel]="receivedLabel.bind(this)"
+        [isSendingMessage]="isSendingMessage.bind(this)"
+        (copy)="copyText($event.content, $event.index)"
+        (feedback)="onAssistantFeedback($event.message, $event.type)"
+        (contactSubmitted)="onContactSubmitted($event.message, $event.values)"
+        (contactSkipped)="onContactSkipped($event.message)"
+        (contactCancelled)="onContactCancelled($event.message)"
+        (contactCleared)="onContactCleared($event.message)">
+      </app-message>
+    </div>
+
+    <!-- Input row -->
+    <div class="embed-input-row" [class.has-chat]="!isEmpty" [style.backgroundColor]="backColor || appOrWp?.backColor || DEFAULT_THEME.backColor">
+      <app-composer
+        [(userMessage)]="userMessage"
+        [isSending]="isSending"
+        [sendIconReady]="sendIconReady"
+        [t]="t.bind(this)"
+        [placeholder]="isEmpty ? (welcomeText || '') : ''"
+        [chatModeVisible]="chatModeSelectorVisible"
+        [chatMode]="chatMode"
+        [chatModeAiLabel]="t('chatModeAi') || 'AI search'"
+        [chatModeAgentLabel]="agentLabel"
+        [chatLimits]="chatLimits"
+        [attachedCount]="pendingAttachments.length"
+        [isNeutral]="isNeutral"
+        [isEmpty]="isEmpty"
+        [contactEditVisible]="contactEditVisible"
+        (keydownEvent)="onComposerKeydown($event)"
+        (inputEvent)="onEmbedInputChange()"
+        (focusEvent)="onInputFocus()"
+        (blurEvent)="onInputBlur()"
+        (sendMessage)="send()"
+        (chatModeChange)="onChatModeSelected($event)"
+        (attachmentPicked)="onAttachmentPicked($event)"
+        (attachmentsPasted)="sendPastedAttachments()"
+        (helpRequested)="askForHelp()"
+        (contactEditRequested)="openContactEditor()">
+      </app-composer>
+
+      <!-- Example questions, under the composer while the conversation is
+           empty and nothing has been typed. The conditions stay here — they
+           are about the conversation, not about a row of buttons — and the
+           component only draws what it is given. -->
+      <app-suggestion-chips
+        *ngIf="showSuggestions && isEmpty && !userMessage.trim()"
+        [suggestions]="suggestions"
+        [maxVisible]="suggestionMaxVisible"
+        [disabled]="isSending"
+        [t]="t.bind(this)"
+        (pressed)="onSuggestionMouseDown()"
+        (picked)="onSuggestionClick($event)">
+      </app-suggestion-chips>
+
+    </div>
+
+    <!-- The little "Use text" bubble that follows a selection.
+         Its z-index comes from --bbc-z like every other layer here, rather
+         than the flat 2147483647 it used to carry inline: position:fixed on
+         a maximum z-index is a claim on the whole host page, and this one
+         had no way for the zindex parameter to reach it at all. +10 puts it
+         over the panel's own layers (.embed-resize at 3 is the highest)
+         while never sitting higher, relative to the page, than the widget
+         itself was given — the same rule the feedback backdrop follows. -->
+    <div *ngIf="selectionActionVisible"
+         [style.left.px]="selectionActionX"
+         [style.top.px]="selectionActionY"
+         style="position:fixed;z-index:calc(var(--bbc-z) + 10);transform:translateX(-50%);">
+      <button type="button"
+              (mousedown)="$event.preventDefault()"
+              (click)="useSelectedAssistantText()"
+              style="border:none;border-radius:999px;padding:6px 10px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.18);background:#111827;color:#fff;font:inherit;">
+        {{ t('useText') || 'Use text' }}
+      </button>
+    </div>
+
+    <!-- Feedback modal -->
+    <!-- Ending a live chat is destructive in a way the visitor cannot see: the
+         agent's session is closed, so a reply they were part-way through typing
+         reaches nobody. Same modal pattern as the feedback dialog — absolute
+         within the panel, not fixed to the browser window. -->
+    <div *ngIf="newChatConfirmOpen" class="feedback-modal-backdrop">
+      <div class="feedback-modal" (click)="$event.stopPropagation()">
+        <div class="feedback-title">
+          {{ t('newChatConfirmTitle') || 'End this conversation?' }}
+        </div>
+
+        <div class="feedback-subtitle">
+          {{ t('newChatConfirmBody') || 'You are talking to a person right now. Starting a new chat ends that conversation and deletes it — anything they send after this will not reach you.' }}
+        </div>
+
+        <div class="feedback-actions">
+          <button type="button" (click)="confirmNewConversation()">
+            {{ t('newChatConfirmOk') || 'End and start new' }}
+          </button>
+
+          <button type="button" (click)="cancelNewConversation()">
+            {{ t('newChatConfirmCancel') || 'Keep chatting' }}
+          </button>
+        </div>
       </div>
     </div>
+
+    <div *ngIf="feedbackModalOpen" class="feedback-modal-backdrop">
+      <div class="feedback-modal" (click)="$event.stopPropagation()">
+        <div class="feedback-title">
+          {{ t('feedbackTitle') || 'Tell us what was wrong' }}
+        </div>
+
+        <div class="feedback-subtitle">
+          {{ t('feedbackSubtitle') || 'Leave a message if you want, or just submit directly.' }}
+        </div>
+
+        <textarea
+          [(ngModel)]="feedbackComment"
+          rows="4"
+          [attr.placeholder]="t('feedbackPlaceholder') || 'Leave a message about why the response was not good...'"
+          class="feedback-input"></textarea>
+
+        <div class="feedback-actions">
+          <button type="button" (click)="submitNegativeFeedback()">
+            {{ t('feedbackSubmit') || 'Submit' }}
+          </button>
+          <button type="button" (click)="closeFeedbackModal()">
+            {{ t('feedbackCancel') || 'Cancel' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
-</div>
+
+  <!-- Resize grip, bottom-right.
+       A sibling of the card rather than a child of it: .embed-card has
+       overflow:hidden to clip the input row to the rounded corner, which would
+       clip this too. Sits on the shell, which does not clip. -->
+  <div class="embed-resize"
+       *ngIf="windowControlsVisible"
+       (pointerdown)="beginWindowDrag($event, 'resize')"
+       [attr.title]="t('windowResizeHint') || 'Drag to resize'"
+       aria-hidden="true">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M11 4 4 11M11 8l-3 3" stroke="currentColor" stroke-width="1.4"
+            stroke-linecap="round"/>
+    </svg>
+  </div>
+</section>

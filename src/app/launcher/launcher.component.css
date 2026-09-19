@@ -2,11 +2,37 @@
   all: initial;
   contain: none;
 
+  /* These are the widget's own defaults now that the backend seeds nothing.
+     gap and compact-height were changed to match what the backend used to
+     assert on every app (8 and 480) — the values here were unreachable, and
+     adopting them would have resized every existing launcher. */
   --bbc-side-offset: 16px;
-  --bbc-gap: 12px;
+  --bbc-gap: 8px;
   --bbc-compact-width: 360px;
-  --bbc-compact-height: 520px;
-  --bbc-z: 2147483647;
+  --bbc-compact-height: 480px;
+
+  /* The floor, not the ceiling — and deliberately the lowest value that still
+     does the job.
+
+     1 is enough to put a positioned element above the page's ordinary
+     content, which is all a floating widget is entitled to assume. It used to
+     be 2147483647, the maximum an int can hold, which is a different claim
+     altogether: that nothing on the host's page may ever cover the widget,
+     including their own menus and modals. That is not a default's decision to
+     make, and it is unfixable from outside — there is no number above the
+     maximum, so a host whose menu needed to open over the launcher had no way
+     to say so. One did: the console's own language menu sat under the button
+     and could not be clicked at all.
+
+     A host that does want the widget higher says so with the zindex
+     parameter (see LauncherComponent.zIndex), which is now the only thing
+     that decides this. Everything else here is derived: #bbc-launcher takes
+     var(--bbc-z) + 1 so the button stays over its own panel, and
+     launcher-position.service.ts writes var(--bbc-z) when it places the
+     panel. The same number is repeated in LauncherComponent.DEFAULT_Z, which
+     is what the host element itself is given — CSS and TS cannot share a
+     constant, so if one changes, change the other. */
+  --bbc-z: 1;
   --bbc-floating-lift: 32px;
   --bbc-launcher-size: 64px;
 
@@ -20,11 +46,35 @@
     Arial,
     sans-serif
   );
-  font-size: var(--bb-font-size, 14px);
+  font-size: var(--bb-font-size, 16px);
   line-height: var(--bb-line-height, 1.45);
 }
 
 #bbc-launcher {
+  /* Initial/default box — see the matching comment on #bbc-wrapper below.
+     dockLauncherToWindow()/moveDrag() always overwrite
+     position/right/bottom/width/height with inline styles once they run,
+     and inline always wins over a class rule, so this changes nothing
+     about the live, docked, or dragged position. This element never had
+     an Angular [style.x] binding (only [attr.*] ones), so it was never at
+     risk of the reflush bug the wrapper had — moved here purely so both
+     elements follow the same rule and no static `style="..."` string is
+     left in this template for a future binding to land next to. */
+  position: fixed;
+  right: var(--bbc-side-offset);
+  bottom: var(--bbc-side-offset);
+  z-index: calc(var(--bbc-z) + 1);
+  width: var(--bbc-launcher-size);
+  height: var(--bbc-launcher-size);
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .16);
+  cursor: pointer;
+
   transition: opacity 0.18s ease;
   user-select: none;
 }
@@ -45,11 +95,108 @@
 }
 
 #bbc-wrapper {
+  /* Initial/default box only — this is the pre-JS state (and the state if
+     JS never ran at all). LauncherPositionService.positionPanel() always
+     overwrites position/right/bottom/width/height/z-index with inline
+     styles once it runs, and an inline style always wins over a class
+     rule, so moving these here changes nothing about the live behavior.
+     What it does fix: this used to be a static `style="..."` attribute on
+     the element in the template, which — combined with the
+     [style.borderColor] binding that lived on the same element — made
+     Angular reflush and reassert these values on every change-detection
+     pass, fighting with positionPanel()'s own writes. A plain CSS rule
+     has no such mechanism: nothing but this service ever touches these
+     properties again after first paint. */
+  position: fixed;
+  right: var(--bbc-side-offset);
+  bottom: var(--bbc-side-offset);
+  width: var(--bbc-compact-width);
+  height: var(--bbc-compact-height);
+  z-index: var(--bbc-z);
+
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   background: #fff;
   box-shadow: 0 8px 28px rgba(2, 6, 23, 0.08);
   overflow: hidden;
+}
+
+/* Contain the chat's stacking.
+ *
+ * <blue-search> sets `:host { position: relative }` with no z-index, which
+ * positions it without creating a stacking context — so its descendants stack
+ * in THIS element's context, not inside the panel. chat.component.css has
+ * absolute overlays at z-index 2147483647, and those were escaping to paint
+ * over the resize grip: the grip appeared, then vanished the moment the chat
+ * rendered.
+ *
+ * `z-index: 0` on a positioned element creates a stacking context, so those
+ * overlays are now bounded by the panel they belong to. They are positioned
+ * against :host already and were never meant to escape it, so nothing they do
+ * changes — they simply stop out-ranking the panel's own chrome.
+ */
+#bbc-chat {
+  position: relative;
+  z-index: 0;
+
+  /* Room at the header's left edge for the resize grip, so it does not sit on
+     top of the fullscreen button. Read by .widget-header inside the panel —
+     custom properties inherit through the shadow boundary, which is what lets
+     the launcher reserve space in a component it cannot otherwise style.
+     18px: the grip is 16px inset 7px, so its right edge is at 23px; 18 plus
+     the header's own 12px padding clears it with a little air. */
+  --bb-header-pad-left: 18px;
+}
+
+/* The resize grip.
+   Positioned against #bbc-wrapper, which is `position: fixed` — the panel's
+   own corner, not the page's. Above the chat (which has no z-index of its
+   own) so the pointer lands here rather than on the header beneath it. */
+#bbc-resize {
+  position: absolute;
+
+  /* Inset, not at 0,0. The wrapper is border-radius:16px with overflow:hidden,
+     so the extreme corner is clipped away — a grip drawn there is invisible
+     however opaque it is. 7px puts the strokes inside the curve. */
+  top: 7px;
+  left: 7px;
+  width: 16px;
+  height: 16px;
+  z-index: 3;
+
+  cursor: nwse-resize;
+
+  opacity: 0.8;
+  transition: opacity 0.12s ease;
+
+  /* A dark chip with light strokes on it, rather than strokes alone.
+     The header band is whatever the app configured — this panel's is pale
+     blue with dark icons, and the white strokes I drew first were invisible
+     on it. A stroke colour that works on a navy header fails on a light one
+     and the reverse, so the grip brings its own background: the chip carries
+     the contrast, the strokes read against the chip, and neither depends on
+     what is behind them. */
+  background-color: rgba(2, 6, 23, 0.45);
+  background-image:
+    linear-gradient(to right, #fff 0 9px, transparent 9px 100%),
+    linear-gradient(to bottom, #fff 0 9px, transparent 9px 100%);
+  background-size: 9px 2px, 2px 9px;
+  background-position: 3px 3px, 3px 3px;
+  background-repeat: no-repeat;
+
+  border-radius: 4px;
+}
+
+#bbc-wrapper:hover #bbc-resize,
+#bbc-resize:hover {
+  opacity: 1;
+}
+
+/* Full mode is the viewport — there is no size to choose, so no grip.
+   Done here rather than with an *ngIf because this class is written directly
+   by positionPanel(), which is also what decides the mode. One source. */
+#bbc-wrapper.bbc-full #bbc-resize {
+  display: none;
 }
 
 #bbc-wrapper.bbc-full {
@@ -66,4 +213,19 @@ video::-webkit-media-controls-start-playback-button {
 
 video::-webkit-media-controls {
   display: none !important;
+}
+
+/* ================= MOBILE ================= */
+/* Same 600px cutoff LauncherPositionService uses for its own "isNarrow"
+   layout decisions (positionPanel(), openChat()). A fixed 64px button reads
+   as oversized on a small phone screen — this scales it down with the
+   viewport instead, down to 48px on the narrowest phones, capped at the
+   original 64px once the screen is wide enough that it no longer needs to
+   shrink. Only changes the *default* — an API-configured launcherSize
+   (applyApiLauncherSize() -> setLauncherSize()) sets this same custom
+   property inline on the host, which always wins over this rule. */
+@media (max-width: 600px) {
+  :host {
+    --bbc-launcher-size: clamp(48px, 15vw, 64px);
+  }
 }

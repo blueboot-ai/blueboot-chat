@@ -1,0 +1,426 @@
+/* Shared by both surfaces, so everything is expressed against the widget's own
+   tokens (--bb-*) rather than either surface's local rules. */
+
+/* An attachment is a label on the message, not part of what was said, so it
+   sits a size below the conversation. Set once here and inherited by every
+   name, badge and caption inside — the smaller values below are relative to
+   this, so they shrink with it rather than needing their own arithmetic. */
+.al-wrap {
+  margin-top: 0.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  min-width: 0;
+
+  /* 0.7 of the widget's configured size, with a 10px floor.
+     Against --bb-font-size, not em: em here would resolve through the message
+     bubble's own 0.93em, so "0.7" would quietly mean 0.65 of the size the host
+     actually set. Naming the variable makes the ratio the one written down.
+     rem — what this was — is worse again: that is the host page's root size,
+     which the widget has no business inheriting from.
+     The floor is where names and captions stop being readable at all; max()
+     lets the ratio win at every normal size and only takes over below it. */
+  font-size: max(calc(var(--bb-font-size, 16px) * 0.7), 10px);
+
+  /* Aligned to the trailing edge, because these hang off the visitor's own
+     message and that is the side it sits on. Logical `flex-end`, not `right`,
+     so the block follows the widget into an RTL language instead of stranding
+     itself away from the bubble it belongs to. */
+  align-items: flex-end;
+}
+
+/* ── Tiles: images and video ───────────────────────────────────────────────
+   Sized as a share of the message, not as a fixed number of pixels.
+
+   150px was a thumbnail — an identifier, not something anyone could look at —
+   and it stayed 150px whether the widget was a narrow embed or a wide panel.
+   A single image now takes the bubble's full width, which is what a visitor
+   who attached a photo expects to see: the picture, not a stamp of it.
+
+   minmax(0, 1fr) with auto-fit rather than a pixel track: one image fills the
+   row, two share it, and the column count follows the container instead of a
+   breakpoint. min() caps the track so a wide desktop panel does not blow a
+   single photo up to 600px — 320px is about where a preview stops gaining
+   anything from being larger. */
+.al-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8em), 1fr));
+  gap: 0.35em;
+  min-width: 0;
+
+  /* Fills from the trailing edge, so a lone tile or an odd last one sits
+     under the message rather than out on its own on the far side. */
+  justify-content: end;
+
+  /* The width the tiles scale within. 100% of the bubble, and never wider than
+     a size where more pixels stop helping. */
+  width: 100%;
+  max-width: min(100%, 320px);
+}
+
+.al-tile {
+  position: relative;
+  margin: 0;
+  min-width: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(128, 128, 128, .08);
+}
+
+/* Taller than wide is wrong for a photo in a chat bubble, and square wastes
+   height on a landscape one — 4/3 is the compromise that suits both without
+   the row jumping as each picture decodes, since the box is reserved before
+   the image arrives.
+
+   `cover` still: a preview that letterboxes itself inside a grey box reads as
+   broken, and the whole image is one tap away on the stored copy. */
+.al-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+/* A lone image is the common case and deserves the room: no grid to keep even,
+   so it keeps its own shape rather than being cropped to the tile's. */
+.al-tiles:has(> .al-tile:only-of-type) .al-thumb {
+  aspect-ratio: auto;
+  max-height: 20em;
+  object-fit: contain;
+}
+
+/* Says "video" without a word. Over the picture rather than beside it, so a
+   video tile and an image tile stay exactly the same size. */
+.al-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .55);
+  color: #fff;
+  font-size: 1.1em;
+  padding-left: 0.15em;
+}
+
+/* On the image, not under it: a caption below would push every tile taller by
+   a line and turn a tidy grid into a stack of cards. */
+.al-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.85em 0.65em 0.4em;
+  font-size: .92em;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, .62), rgba(0, 0, 0, 0));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Rows: documents and sound ─────────────────────────────────────────── */
+.al-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+
+  /* The rows inside still shrink to their filename — that is what flex-end
+     does — but the list itself spans the bubble.
+     Without this the list is shrink-to-fit too (its parent .al-wrap is a
+     column flex with align-items: flex-end), so a row asking for width: 100%
+     got 100% of the widest filename rather than 100% of the message. That is
+     why the confirmation stayed squeezed into the row's own box. */
+  width: 100%;
+  align-items: flex-end;
+}
+
+/* A quiet card rather than a bare line: an attachment is a distinct object in
+   the message, and the border is what says so without shouting. */
+.al-item {
+  /* The anchor for .al-confirm, which is drawn over this row rather than
+     added below it — see that rule for why. */
+  position: relative;
+
+  display: flex;
+  /* flex-start, not center: the row is no longer guaranteed to be one line
+     tall. With the name wrapping, centring would push the badge down beside
+     the middle of a three-line filename. */
+  align-items: flex-start;
+  gap: 0.75em;
+  min-width: 0;
+
+  /* Shrink-to-fit now that the rows align right — a short filename should not
+     draw a card the full width of the conversation. Capped so a long one
+     truncates at the bubble edge instead of pushing past it. */
+  max-width: 100%;
+
+  padding: 0.5em 0.75em;
+  border: 1px solid var(--bb-mode-ruler-bg, rgba(128, 128, 128, .2));
+  border-radius: 0.85em;
+  background: rgba(128, 128, 128, .05);
+}
+
+/* The extension, set in a tinted square. Monospace so XLSX and PDF occupy
+   predictable width instead of jittering the name beside them. */
+.al-badge {
+  /* Never shrinks and never wraps away: the badge is how a row is recognised
+     at a glance, and it is the one part that stays the same size while the
+     name beside it takes as many lines as it needs.
+
+     `flex: none` is what guarantees it — with `1 1 auto` a long filename would
+     squeeze the badge to nothing before wrapping itself. align-self keeps it
+     at the top of a row that has grown to two or three lines, beside the first
+     line of the name rather than floating in the middle of the block.
+
+     Sized in em so it tracks the list's own type, with a floor for the same
+     reason the icons elsewhere have one. 2.5em is the old 28px at the default
+     size, measured against this list's 0.7 scale rather than the widget's. */
+  flex: none;
+  align-self: flex-start;
+  width: max(2.5em, 20px);
+  height: max(2.5em, 20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 0.55em;
+  font-family: var(--bb-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: .75em;
+  letter-spacing: .02em;
+
+  /* Neutral by default; the two kinds with a strong convention get a tint.
+     Deliberately only two — a colour per extension would be a legend nobody
+     asked for. */
+  background: rgba(128, 128, 128, .16);
+  color: inherit;
+}
+
+.al-badge[data-kind="sound"] {
+  background: rgba(186, 117, 23, .16);
+}
+
+.al-badge[data-kind="image"],
+.al-badge[data-kind="video"] {
+  background: rgba(55, 138, 221, .16);
+}
+
+.al-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.08em;
+}
+
+/* Wrapped, not truncated.
+   Ellipsis was the wrong trade in a narrow bubble: the end of a filename is
+   where the useful part usually is — the version, the date, the extension —
+   so "kvartalsrapport-2026-q…" cut exactly what the visitor was checking for.
+   Wrapping costs a line of height and keeps the whole name.
+
+   overflow-wrap: anywhere is what makes it work on the names that need it
+   most. A long unbroken filename has no spaces to break at, so plain wrapping
+   leaves it as one over-wide word and the row grows past the bubble anyway;
+   this lets the break fall mid-word when there is nowhere better. word-break
+   is the fallback for browsers without it.
+
+   min-width: 0 on the flex parent (.al-body, above) is the other half: without
+   it a flex item refuses to shrink below its content and no wrapping rule here
+   would ever be reached. */
+.al-name {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* The same name, when it is openable.
+   Deliberately not styled as a link at rest: the row already reads as an
+   attachment, and a blue underlined filename inside a message bubble competes
+   with the message's own links. The affordance appears on hover, which is
+   where someone looks for one. */
+.al-name-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.al-name-link:hover,
+.al-name-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* The "Open this?" prompt, drawn over its own row.
+   inset:0 inside the row (which is position:relative) means it occupies no
+   space of its own: the list does not grow when it appears, so the panel above
+   it does not move. That is the whole point — appending a row instead made the
+   frame jump on every click.
+
+   Opaque background, because it covers the name and size underneath rather
+   than sitting beside them. --bb-msg-back is the bubble's own colour, so the
+   prompt reads as the row changing rather than as something laid on top. */
+.al-confirm {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+
+  padding: 0 0.75em;
+  border-radius: inherit;
+  background: var(--bb-msg-back, #ffffff);
+  text-align: left;
+}
+
+/* The row gives up its shrink-to-fit width while it is asking.
+   A row is normally only as wide as its filename, so the overlay above — which
+   is inset:0 within it — inherited that width and squeezed the prompt into a
+   few characters. Full width gives it the whole bubble to use.
+
+   Height is deliberately untouched: growing sideways moves nothing, growing
+   downwards would move the panel, which is the flicker this design exists to
+   avoid. */
+.al-item.confirming {
+  width: 100%;
+}
+
+/* Truncates rather than wrapping, still — the prompt has to fit the row's
+   existing height, and a wrapped long filename would spill out of the box it
+   is covering. With the full width above it now has room for most names, and
+   the whole string stays in the title attribute for the rest. */
+.al-confirm-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.al-confirm-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  flex: none;
+}
+
+/* Same shape as the contact form's buttons — small, outlined, no fill — so the
+   two places the widget asks a question look like one widget. */
+.al-confirm-btn {
+  appearance: none;
+  font: inherit;
+  font-size: 0.95em;
+  line-height: 1;
+
+  padding: 0.4em 0.75em;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.4);
+  border-color: color-mix(in srgb, currentColor 28%, transparent);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+
+  transition: background-color 0.14s ease, border-color 0.14s ease;
+}
+
+.al-confirm-btn:hover {
+  background: rgba(127, 127, 127, 0.08);
+  background: color-mix(in srgb, currentColor 7%, transparent);
+}
+
+.al-confirm-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Dimmed while the bytes are being fetched. The label changes too, so this is
+   the quieter half of saying the same thing — and it stops a second click
+   starting a second download of the same file. */
+.al-confirm-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* The affirmative one carries the weight, so the pair reads as an action and a
+   way out rather than two equal choices. */
+.al-confirm-yes {
+  font-weight: 600;
+  border-color: rgba(127, 127, 127, 0.7);
+  border-color: color-mix(in srgb, currentColor 55%, transparent);
+}
+
+.al-meta {
+  font-size: .92em;
+  color: var(--bb-muted, inherit);
+  opacity: .7;
+}
+
+/* The opening lines of a text file, tucked under its row.
+   Left-aligned inside a right-aligned block: the rows sit against the trailing
+   edge, but code read from the right is unreadable. */
+.al-snippet {
+  max-width: 100%;
+  min-width: 0;
+  margin-top: -0.15em;
+  padding: 0.5em 0.65em;
+  border: 1px solid var(--bb-mode-ruler-bg, rgba(128, 128, 128, .2));
+  border-radius: 0.65em;
+  background: rgba(128, 128, 128, .07);
+  text-align: left;
+}
+
+/* Wrapped, not scrolled. A nested scroll area inside a chat bubble is a trap:
+   the wheel fights the conversation for it. The snippet is a dozen lines by
+   construction, so it simply ends. */
+.al-snippet pre {
+  margin: 0;
+  font-family: var(--bb-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: .92em;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: .8;
+}
+
+/* ── States ────────────────────────────────────────────────────────────── */
+
+/* Dimmed while the bytes are still going up — present, clearly not finished. */
+.al-item.uploading,
+.al-tile.uploading {
+  opacity: .55;
+}
+
+.al-item.failed {
+  border-color: var(--bb-error, #b42318);
+}
+
+.al-tile.failed {
+  outline: 1px solid var(--bb-error, #b42318);
+  outline-offset: -1px;
+}
+
+/* Once per message, under everything. The reason a file was refused can be a
+   sentence, so it wraps — truncating it would leave the visitor with no idea
+   what to do differently. */
+.al-status {
+  margin: 0;
+  font-size: .92em;
+  white-space: normal;
+  text-align: right;
+}
+
+.al-wrap:has(.failed) .al-status {
+  color: var(--bb-error, #b42318);
+}

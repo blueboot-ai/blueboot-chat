@@ -1,0 +1,49 @@
+<!-- Trigger. Icon-only and transparent, matching the paperclip beside it. -->
+<button type="button"
+        class="lp-trigger"
+        [class.open]="open"
+        [disabled]="disabled"
+        [attr.aria-expanded]="open"
+        [attr.aria-label]="t('langPicker') || 'Choose language'"
+        [attr.title]="t('langPicker') || 'Choose language'"
+        (click)="toggle()">
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="1.8">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M3.6 9h16.8M3.6 15h16.8"/>
+    <path d="M12 3c2.4 2.4 3.6 5.4 3.6 9s-1.2 6.6-3.6 9c-2.4-2.4-3.6-5.4-3.6-9S9.6 5.4 12 3z"/>
+  </svg>
+</button>
+
+<!-- Lies over the whole widget frame, whose size is measured at open time
+     (fitToFrame) because it is not knowable from CSS. Falls back to a plain
+     drop-down from the trigger when nothing up the tree clips and there is
+     therefore no frame to fit. A grid rather than a list: see lp-scroll in the
+     stylesheet. -->
+<div class="lp-panel" #panel *ngIf="open" role="dialog"
+     [class.cover]="covering"
+     [style.width.px]="coverW"
+     [style.height.px]="coverH"
+     [style.transform]="coverTransform"
+     [attr.aria-label]="t('langPicker') || 'Choose language'">
+
+  <!-- No chrome of its own: no heading, no close button. The sheet is only ever
+       one click from gone — picking a language closes it, so does a click
+       anywhere outside and so does Escape — and a visitor who opened a list of
+       languages is there to pick one. -->
+  <div class="lp-scroll" role="listbox">
+    <!-- Each cell carries lang="xx" so the browser picks the right font and
+         shaping for it — without it, Arabic and Hebrew names inherit the
+         surrounding direction and render badly in an otherwise Latin grid. -->
+    <button *ngFor="let o of options; trackBy: trackByCode"
+            type="button"
+            class="lp-option"
+            role="option"
+            [class.current]="o.code === current"
+            [attr.aria-selected]="o.code === current"
+            [attr.lang]="o.code"
+            (click)="choose(o.code)">
+      <span class="lp-label">{{ o.label }}</span>
+    </button>
+  </div>
+</div>

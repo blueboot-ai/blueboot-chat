@@ -1,0 +1,123 @@
+/* Ships its own stylesheet rather than relying on either surface, same as the
+   other shared components here, and expressed against the widget's own tokens
+   (--bb-*) so a configured theme reaches it. */
+
+:host {
+  display: block;
+}
+
+/* Spacing comes from `gap` alone.
+   The markup this replaced had gap: 4px on the row *and* margin: 2px on every
+   chip, so the real spacing was 8px horizontally and 4px vertically — uneven,
+   and neither number was the one written down. One mechanism, one value.
+
+   In em, like everything below: the gap between chips should grow with the
+   chips, not stay at a fixed pixel count while they get larger. */
+.sc-row {
+  margin-top: 0.7em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45em;
+
+  font-family: inherit;
+  line-height: 1.2;
+}
+
+/* Sized entirely by its own text.
+   Every dimension here is in em, so the chip is a function of font-size and
+   nothing else: raise the configured font and the padding, the radius and the
+   row gap all scale with it. Pixel padding plus a pixel min-height meant a
+   widget at 20px type had chips shaped for 14px type — cramped horizontally,
+   and taller than their content needed.
+
+   No min-height at all now. It existed to guarantee a tap target, but a fixed
+   floor is exactly what breaks the proportion: at a large font the padding
+   already clears it, and at a small one it distorted the shape. The coarse
+   pointer rule at the bottom handles the touch case honestly, by asking for
+   more padding rather than a taller box around the same padding. */
+.sc-chip {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 0.4em 0.9em;
+
+  /* The border is derived from the text colour, not from a fixed grey.
+     currentColor is already the colour chosen to be readable against this
+     background — dark on light, light on dark — so a fraction of it is the
+     one value guaranteed to contrast with whatever the background turns out
+     to be. A hardcoded #e5e7eb vanishes on a white card and glares on a dark
+     one; this cannot.
+
+     The first declaration is the fallback for browsers without color-mix; the
+     second overrides it where support exists. rgba grey, not a token, because
+     a fallback that depends on a variable is not a fallback. */
+  border: 1px solid rgba(127, 127, 127, 0.4);
+  border-color: color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: 999px;
+
+  /* The message background, so a chip reads as a line the assistant is
+     offering to say rather than a hole in the card.
+     Two names because the two surfaces spell it differently: the embed sets
+     --bb-msg-back from messageColor, the chat panel declares --bb-bubble-bg.
+     White last, which is what both fall back to when neither is configured. */
+  background: var(--bb-msg-back, var(--bb-bubble-bg, #ffffff));
+
+  font: inherit;
+  font-size: 0.82em;
+
+  /* The conversation's own text colour, not the muted one.
+     Muted is for metadata a visitor reads past — a timestamp, a file size.
+     These are questions being offered, and the whole point is that they get
+     read. The outline is what keeps them quiet; dimming the words as well made
+     them look disabled rather than optional. */
+  color: var(--bb-text, #111827);
+  text-align: left;
+  cursor: pointer;
+
+  /* A long suggestion truncates rather than wrapping to three lines and
+     pushing the composer down the page. The full text stays in the title
+     attribute, and most suggestions are short. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  transition: background-color 0.14s ease, border-color 0.14s ease,
+              color 0.14s ease;
+}
+
+/* The text is already at full strength, so hover works on the box: a light
+   fill and a firmer border. Enough to say "this one", without the chip
+   changing colour under the pointer. */
+.sc-chip:hover:not(:disabled) {
+  background: rgba(127, 127, 127, 0.08);
+  background: color-mix(in srgb, currentColor 7%, transparent);
+
+  border-color: rgba(127, 127, 127, 0.7);
+  border-color: color-mix(in srgb, currentColor 55%, transparent);
+}
+
+.sc-chip:active:not(:disabled) {
+  background: rgba(127, 127, 127, 0.14);
+  background: color-mix(in srgb, currentColor 13%, transparent);
+}
+
+.sc-chip:focus-visible {
+  outline: 2px solid var(--bb-link, #2563eb);
+  outline-offset: 2px;
+}
+
+/* Dimmed while a send is in flight: the chips still describe what can be
+   asked, but pressing one now would queue a second question behind the first. */
+.sc-chip:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Coarse pointers get more room around the same text — still proportional,
+   just a more generous ratio, rather than a pixel floor bolted underneath. */
+@media (pointer: coarse) {
+  .sc-chip {
+    padding: 0.6em 1.05em;
+  }
+}

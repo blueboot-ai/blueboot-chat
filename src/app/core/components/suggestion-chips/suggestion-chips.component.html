@@ -1,0 +1,20 @@
+<!-- One row, wrapping. The host decides *whether* to render this at all — an
+     empty conversation, nothing typed — so the only condition here is whether
+     there is anything to draw. -->
+<div class="sc-row" *ngIf="hasAny" role="list">
+
+  <!-- mousedown as well as click: pressing a chip blurs the composer, which is
+       what hides the strip, so the click would otherwise land on an element
+       that has already gone. The host holds it open on `pressed`. -->
+  <button
+    type="button"
+    class="sc-chip"
+    role="listitem"
+    *ngFor="let s of visible; trackBy: trackBySuggestion"
+    [disabled]="disabled"
+    [attr.title]="s"
+    (mousedown)="onPress()"
+    (click)="onPick(s)">
+    {{ s }}
+  </button>
+</div>

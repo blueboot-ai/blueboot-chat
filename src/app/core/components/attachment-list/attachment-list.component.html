@@ -1,0 +1,116 @@
+<div class="al-wrap" *ngIf="attachments?.length">
+
+  <!-- Anything with a picture, as a grid of tiles. Separated from the rows
+       below because a thumbnail and a filename want opposite layouts: one
+       tiles, the other stacks. -->
+  <div class="al-tiles" *ngIf="tiles.length">
+    <figure class="al-tile"
+            [class.uploading]="isUploading"
+            [class.failed]="hasFailed"
+            *ngFor="let a of tiles; trackBy: trackByIndex">
+      <!-- The local bytes while we have them, the stored copy afterwards — see
+           pictureSrc(). Lazy because a long conversation can hold a lot of
+           these and only the visible ones are worth fetching. -->
+      <img class="al-thumb" [src]="pictureSrc(a)" [alt]="a.name || label(a.kind)" loading="lazy" />
+
+      <!-- Marks it as a video rather than a still. Sits on the image, so the
+           tile stays the same size whichever kind it is. -->
+      <span class="al-play" *ngIf="a.kind === 'video'" aria-hidden="true">▶</span>
+
+      <figcaption class="al-cap" [attr.title]="a.name">{{ a.name || label(a.kind) }}</figcaption>
+    </figure>
+
+  </div>
+
+  <!-- Everything else: documents, sound, and any image whose preview could not
+       be produced. -->
+  <ul class="al-list" *ngIf="rows.length">
+    <ng-container *ngFor="let a of rows; trackBy: trackByIndex">
+    <!-- .confirming widens the row to the full width of the bubble while the
+         prompt is up. The row is otherwise shrink-to-fit — as wide as its
+         filename — which left the prompt squeezed into whatever space a short
+         name happened to occupy.
+
+         Width only: the height is untouched, so nothing above it moves. That
+         constraint is the whole reason the prompt is an overlay rather than an
+         extra row. -->
+    <li class="al-item"
+        [class.uploading]="isUploading"
+        [class.failed]="hasFailed"
+        [class.confirming]="confirming === a">
+
+      <!-- The extension, not an emoji. "XLSX" is scannable down a long feed in
+           a way a glyph is not, and it renders the same on every platform —
+           which is exactly what the flag emoji failed to do. -->
+      <span class="al-badge" [attr.data-kind]="a.kind" aria-hidden="true">{{ badge(a) }}</span>
+
+      <span class="al-body">
+        <!-- A link only once the file is actually stored somewhere it can be
+             fetched from. Before that — and for an upload that failed to store —
+             the name is plain text rather than a link that would 404, because a
+             dead link is a worse acknowledgement than none.
+
+             target/rel: this opens on the customer's page, so it must not
+             navigate their site away from the conversation, and noopener is the
+             standard precaution for anything opened in a new tab. -->
+        <!-- A real href, so the address is visible on hover and the link can be
+             copied — but the click is handled rather than followed. Letting it
+             navigate lets it bubble into the widget's own focus and panel
+             handling first, which is what made the frame flicker. -->
+        <a *ngIf="openUrl(a) as href; else plainName"
+           class="al-name al-name-link"
+           [href]="href"
+           [attr.title]="a.name"
+           target="_blank"
+           rel="noopener noreferrer"
+           (click)="askDownload($event, a)">{{ a.name || label(a.kind) }}</a>
+
+        <ng-template #plainName>
+          <span class="al-name" [attr.title]="a.name">{{ a.name || label(a.kind) }}</span>
+        </ng-template>
+
+        <!-- One value, not two. The badge already says what kind it is, so
+             repeating it beside the size says the same thing twice. -->
+        <span class="al-meta" *ngIf="size(a.size) as s">{{ s }}</span>
+      </span>
+
+      <!-- "Open <name>?" — drawn over the row, not under it.
+           Absolutely positioned inside the row it belongs to, so asking costs
+           no height. A row appended below changed the content height, the
+           embed's panel followed it, and the whole frame jumped on every
+           click — which is the flicker this replaces.
+
+           Not a modal either: a dialog over the customer's page for something
+           this small is heavier than the action, and a confirmation that
+           appears on the thing it is about needs no explaining. -->
+      <span class="al-confirm" *ngIf="confirming === a">
+        <span class="al-confirm-text" [attr.title]="confirmText(a)">{{ confirmText(a) }}</span>
+
+        <span class="al-confirm-actions">
+          <button type="button" class="al-confirm-btn al-confirm-yes"
+                  [disabled]="!!downloading"
+                  (click)="confirmDownload($event, a)">
+            {{ downloading === a ? (t('attachUploading') || 'Working…') : (t('attachOpen') || 'Open') }}
+          </button>
+
+          <button type="button" class="al-confirm-btn"
+                  (click)="cancelDownload($event)">
+            {{ t('contactCancel') || 'Cancel' }}
+          </button>
+        </span>
+      </span>
+    </li>
+
+    <!-- The opening lines of a text file, under its own row.
+         A sibling of the row rather than inside it, so the row keeps its fixed
+         height and its truncation rules while the snippet is free to be a
+         block of preformatted text. -->
+    <li class="al-snippet" *ngIf="a.previewText"><pre>{{ a.previewText }}</pre></li>
+
+    </ng-container>
+  </ul>
+
+  <!-- Once for the message, not once per file: the state belongs to the upload,
+       and repeating it under four rows reads as four separate failures. -->
+  <p class="al-status" *ngIf="statusText" role="status">{{ statusText }}</p>
+</div>

@@ -1,0 +1,8 @@
+<!-- One row, one slot. Everything that lands here — the attach button first —
+     is projected by the composer, so this file stays a layout and does not
+     grow a branch per function. -->
+<div class="if-ruler"
+     [class.align-start]="align === 'start'"
+     [class.align-between]="align === 'between'">
+  <ng-content></ng-content>
+</div>

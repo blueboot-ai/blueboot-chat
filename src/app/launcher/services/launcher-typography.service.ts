@@ -11,7 +11,7 @@ export class LauncherTypographyService {
   readonly defaultFontFamily =
     'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
-  readonly defaultFontSize = '14px';
+  readonly defaultFontSize = '16px';
   readonly defaultLineHeight = '1.45';
 
   sanitizeFontSize(v?: string): string | undefined {
@@ -83,9 +83,22 @@ export class LauncherTypographyService {
     };
   }
 
-  applyToElement(el: HTMLElement, typography: LauncherTypography): void {
-    el.style.setProperty('--bb-font-family', typography.fontFamily);
-    el.style.setProperty('--bb-font-size', typography.fontSize);
-    el.style.setProperty('--bb-line-height', typography.lineHeight);
+  /**
+   * Only sets a property when a value is actually supplied. Writing all
+   * three unconditionally (as this used to) means an inline style on the
+   * host — which always beats any stylesheet rule — even when nothing was
+   * ever explicitly configured, permanently pinning the panel to a stale
+   * value. Skipping unset ones lets the CSS default apply instead.
+   *
+   * fontSize specifically goes to --bb-font-size-base, not --bb-font-size:
+   * chat.component.css derives the actual --bb-font-size from that base
+   * (1:1 on desktop, scaled up under its mobile @media rule), so the
+   * mobile bump stays relative to whatever the base is — an explicit
+   * override included — rather than only applying when nothing was set.
+   */
+  applyToElement(el: HTMLElement, typography: Partial<LauncherTypography>): void {
+    if (typography.fontFamily) el.style.setProperty('--bb-font-family', typography.fontFamily);
+    if (typography.fontSize) el.style.setProperty('--bb-font-size-base', typography.fontSize);
+    if (typography.lineHeight) el.style.setProperty('--bb-line-height', typography.lineHeight);
   }
 }

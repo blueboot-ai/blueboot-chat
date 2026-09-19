@@ -1,6 +1,6 @@
 <header class="widget-header"
-        [class.is-full]="mode === 'full'"
-        [style.background]="headerBg === null ? 'transparent' : (headerBg || null)">
+        [style.background]="effectiveHeaderBg"
+        [style.color]="effectiveHeaderText">
 
   <button #btnMax
           type="button"
@@ -24,23 +24,32 @@
     </svg>
   </button>
 
+  <!-- Language, left of the title and away from the actions on the right.
+       Those two — new chat and close — end the conversation, and this only
+       changes a setting; keeping it on the opposite side means a mis-hit costs
+       a menu rather than the conversation. It inherits the header's own
+       colour, so the globe matches the icons beside it on whatever header a
+       site has themed. -->
+  <app-lang-picker *ngIf="!langLocked"
+                   class="widget-header__lang"
+                   [t]="t"
+                   [current]="currentLang"
+                   (picked)="langPicked.emit($event)">
+  </app-lang-picker>
+
   <div class="widget-header__title">
+    <!-- No backend-set logo means no chip at all — not a letter-initial,
+         not an empty coloured circle. -->
     <span class="header-chip"
           [class.round]="headerIsRound"
-          [style.background]="headerLogoBg || null"
-          *ngIf="(logo && logoVisible) || headerLogoInitialLocal || headerLogoBg">
+          [style.background]="effectiveHeaderLogoBg"
+          *ngIf="logo && logoVisible">
 
-      <img *ngIf="logoVisible && logo"
-           class="brandmark"
+      <img class="brandmark"
            [src]="logo"
            [alt]="logoAlt || titleText"
            (error)="logoError.emit()"
            [style.borderRadius]="headerIsRound ? '50%' : '6px'"/>
-
-      <span *ngIf="(!logo || !logoVisible) && headerLogoInitialLocal"
-            class="header-initial">
-        {{ titleText.slice(0, 1) }}
-      </span>
     </span>
 
     <span class="title-text">{{ titleText }}</span>
@@ -53,23 +62,35 @@
             [attr.aria-label]="t('newChat')"
             [attr.title]="t('newChat')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 5v14M5 12h14"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"/>
+        <!-- A page with a pencil: "start a new one", not "+" (which reads as
+             "add" — this button replaces the conversation, it does not append). -->
+        <path d="M12.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6.5"
+              stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M17.6 3.4a1.98 1.98 0 0 1 2.8 2.8L13.6 13l-3.4.8.8-3.4 6.6-7z"
+              stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
 
+    <!-- The embed's hide control, same glyph and same word. Both put the panel
+         away and leave the conversation where it is, so they should not look
+         like different actions — and an ✕ reads as "discard this", which is
+         what the new-chat button beside it actually does. -->
     <button type="button"
             class="widget-header__close"
-            [attr.aria-label]="t('closeChat')"
-            [attr.title]="t('closeChat')"
+            [attr.aria-label]="t('hideChat') || t('closeChat')"
+            [attr.title]="t('hideChat') || t('closeChat')"
             (click)="close.emit()">
+      <!-- Chevron down onto a line: the panel goes down and out of the way,
+           and the line is where it goes. A bare chevron is the same glyph a
+           page uses for "scroll down" and "expand" — the opposite action. -->
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M6 6l12 12M18 6L6 18"
+        <path d="M8 8l4 4 4-4M5 18h14"
               stroke="currentColor"
               stroke-width="2"
-              stroke-linecap="round"/>
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
       </svg>
     </button>
   </div>

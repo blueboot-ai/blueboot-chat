@@ -1,0 +1,87 @@
+/* Shared by the panel composer and the embed input row, so everything here is
+   expressed against the widget's own tokens (--bb-*) rather than either
+   surface's local rules. */
+
+:host {
+  display: block;
+}
+
+/*
+  Empty until the first control is projected in, and an empty strip is dead
+  space with a line through it. `:empty` on the host is the right test for
+  content projection: what the host holds in the light DOM *is* the projected
+  content, so no children means nothing was passed.
+
+  Whitespace counts as a child, which is why the composer writes the element
+  with its tags together when it has nothing to put inside.
+*/
+:host(:empty) {
+  display: none;
+}
+
+/* The host sets display, which beats the browser's own [hidden] rule. The
+   surfaces bind [hidden] when every control on the strip is away — :empty
+   cannot see that, since a hidden child is still a child. */
+:host([hidden]) {
+  display: none;
+}
+
+.if-ruler {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+
+  /* Right by default. These are tools acting on the message, and they belong
+     on the same side as the send button they sit under — a control drifting
+     out to the left edge reads as unrelated to the composer above it. The
+     `align` input can still override this per surface. */
+  justify-content: flex-end;
+
+  /* The ruler itself: a hairline separating these controls from the input
+     above them. Same neutral tint the contact form and the mode selector use,
+     so it reads as part of the widget on a light or a dark theme without
+     either needing its own rule. */
+  border-top: 1px solid var(--bb-mode-ruler-bg, rgba(128, 128, 128, .16));
+
+  /* 14px on the right, 2px on the left.
+     Deliberately uneven: the ruler is right-justified, so the last control on
+     it — the emoji trigger — sits hard against the frame's inner edge, while
+     the left side ends in empty space where 2px is invisible either way. The
+     padding is only doing work on the side something actually reaches.
+
+     Fixed pixels rather than em, unlike the icons above: this is clearance
+     from the frame, not a proportion of the type. It should stay the same gap
+     whether the widget is set to 14px or 20px. */
+  padding: 0.25em 0.875em 0 0.125em;
+
+  /* A fixed height, not a floor that the contents can exceed.
+     The controls on this strip come and go with the mode — the emoji trigger
+     is live-chat only — and while the strip was free to grow, appearing was
+     enough to change its height and shove the composer above it. Pinning the
+     height means the strip is the same strip whichever controls are on it, and
+     switching modes moves nothing.
+
+     max() of the em ratio and the old 28px: the ratio keeps the strip in
+     proportion to the type, the pixel term keeps a usable target when the type
+     is small. It must stay >= the tallest control here (both triggers are
+     2em), or a control would overflow rather than the strip accommodating it. */
+  height: max(2em, 28px);
+}
+
+.if-ruler.align-start {
+  justify-content: flex-start;
+}
+
+.if-ruler.align-between {
+  justify-content: space-between;
+}
+
+/* Coarse pointers get a taller strip — the controls on it are tap targets. */
+@media (pointer: coarse) {
+  .if-ruler {
+    /* Same rule as above, at the coarse-pointer sizes: >= the 2.45em both
+       triggers grow to for a thumb. */
+    height: max(2.45em, 34px);
+    gap: 0.375em;
+  }
+}

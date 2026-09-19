@@ -1,0 +1,117 @@
+/* Tucked close to the bottom of the bubble. The gap above plus the bubble's own
+   bottom padding left a band of empty space under every answer, which made the
+   row read as a separate block rather than a footnote on the message. The
+   negative bottom margin eats back into that padding. */
+.msg-feedback-wrap {
+  margin-top: 0.125em;
+  margin-bottom: -0.25em;
+  display: flex;
+  justify-content: center;
+}
+
+/* No pill, no border, no fill. This asks a question the visitor may ignore, so
+   it should read as a quiet aside under the answer rather than as a control bar
+   competing with it. The chip outline made three small buttons look like a
+   toolbar the message came with. */
+.msg-feedback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  gap: 0.125em;
+  padding: 0;
+}
+
+.feedback-btn {
+  /* A <button> does not inherit font-size, so without this every em below
+     resolves against the browser's own control default. */
+  font: inherit;
+
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 0;
+
+  /* Muted by default and only fully present on hover — the discreet state is
+     the resting one. */
+  opacity: 0.55;
+  transition: background 0.12s ease, opacity 0.12s ease;
+
+  color: var(--bb-muted);
+}
+
+.feedback-btn--with-text {
+  min-height: max(1.25em, 16px);
+  padding: 0.125em 0.3125em;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+}
+
+/* em with a pixel floor, as everywhere else in the widget: these scale with a
+   configured fontSize but never shrink past the point of being guessed at
+   rather than read. The embed's copy of this row had drifted to a separate set
+   of sizes in its own stylesheet. */
+.feedback-btn svg {
+  display: block;
+  width: max(0.8em, 12px);
+  height: max(0.8em, 12px);
+  flex: 0 0 max(0.8em, 12px);
+}
+
+.feedback-btn__label {
+  /* Smaller and not semibold: 600 made three short words as loud as the answer
+     above them. */
+  font-size: calc(var(--bb-font-size, 16px) * 0.6);
+  line-height: 1;
+  font-weight: 400;
+  white-space: nowrap;
+  color: inherit;
+}
+
+/* Icon colours only — the words stay in the row's own colour, so the meaning is
+   carried by the face and not by three differently-coloured labels. */
+.feedback-btn:nth-child(1) svg {
+  color: #16a34a;
+}
+
+.feedback-btn:nth-child(2) svg {
+  color: #eab308;
+}
+
+.feedback-btn:nth-child(3) svg {
+  color: #dc2626;
+}
+
+.feedback-btn:hover:not(:disabled) {
+  background: rgba(127, 127, 127, 0.08);
+  opacity: 1;
+}
+
+.feedback-btn.active {
+  background: rgba(127, 127, 127, 0.16);
+}
+
+.feedback-btn:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+@media (max-width: 600px) {
+  .msg-feedback {
+    gap: 0.1875em;
+    padding: 0.125em 0.25em;
+  }
+
+  .feedback-btn--with-text {
+    gap: 0.1875em;
+  }
+
+  .feedback-btn__label {
+    font-size: calc(var(--bb-font-size, 16px) * 0.56);
+  }
+}

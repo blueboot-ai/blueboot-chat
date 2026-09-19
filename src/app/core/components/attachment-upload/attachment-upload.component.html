@@ -1,0 +1,30 @@
+<ng-container *ngIf="visible">
+  <!-- The real control. Hidden rather than styled, because a file input cannot
+       be restyled reliably across browsers — the button below drives it. -->
+  <input #fileInput
+         type="file"
+         class="au-input"
+         [attr.accept]="acceptAttr"
+         (change)="onFileSelected($event)"
+         tabindex="-1"
+         aria-hidden="true" />
+
+  <button type="button"
+          class="au-trigger"
+          [disabled]="isDisabled"
+          [attr.aria-label]="buttonLabel"
+          [attr.title]="buttonLabel"
+          (click)="openPicker()">
+    <!-- A paperclip: the one icon that means "attach" without a label, in
+         every chat client a visitor has used. -->
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"
+         fill="none" stroke="currentColor"
+         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.4 11.05 12.25 20.2a5.5 5.5 0 0 1-7.78-7.78l9.2-9.2a3.67 3.67 0 0 1 5.18 5.18l-9.2 9.2a1.83 1.83 0 0 1-2.6-2.6l8.5-8.48" />
+    </svg>
+  </button>
+
+  <!-- Sits on the ruler beside the button rather than over the conversation:
+       it is about the file that was just refused, not about the chat. -->
+  <span class="au-error" *ngIf="errorText" role="status">{{ errorText }}</span>
+</ng-container>

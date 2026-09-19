@@ -1,7 +1,7 @@
 {
   "name": "Blue Search Chat (Embed + Launcher)",
   "slug": "blue-search",
-  "version": "1.0.30",
+  "version": "1.0.31",
   "download_url": "https://blueboot-cdn.web.app/blue-search/latest/blue-search.zip",
   "requires": "6.0",
   "tested": "6.5",

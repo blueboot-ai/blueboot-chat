@@ -1,0 +1,28 @@
+<span *ngIf="showInfo"
+      class="msg-info"
+      aria-live="polite"
+      aria-atomic="true">{{ message.info }}</span>
+
+<!-- `| emoji` on both paths, and before `| linkify` on the plain one: it
+     rewrites `:grin:` to 😁 in the raw text, so linkify then sees a string it
+     would have seen anyway. Running it after linkify would mean scanning
+     generated HTML, where a `:` inside an href is not a shortcode. -->
+<ng-container [ngSwitch]="render">
+  <markdown *ngSwitchCase="'markdown'"
+            class="msg-body"
+            [data]="message.content | emoji">
+  </markdown>
+
+  <div *ngSwitchDefault
+       class="msg-body"
+       [innerHTML]="message.content | emoji | linkify">
+  </div>
+</ng-container>
+
+<!-- Attachments on this message, if any. Rendered here rather than in either
+     surface's own template so the panel and the embed cannot drift apart —
+     both already share this component for the message body. -->
+<app-attachment-list [attachments]="message.attachments"
+                     [state]="message.uploadState"
+                     [error]="message.info"
+                     [t]="t"></app-attachment-list>

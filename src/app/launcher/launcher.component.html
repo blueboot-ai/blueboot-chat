@@ -3,73 +3,95 @@
   id="bbc-launcher"
   [attr.aria-expanded]="!wrapper?.hidden ? 'true' : 'false'"
   [attr.aria-hidden]="uiReady ? 'false' : 'true'"
-  style="position:fixed; right:var(--bbc-side-offset); bottom:var(--bbc-side-offset); z-index:calc(var(--bbc-z) + 1);
-         width:var(--bbc-launcher-size); height:var(--bbc-launcher-size); border-radius:50%;
-         border:0; padding:0; margin:0; overflow:hidden;
-         background:transparent; box-shadow:0 8px 28px rgba(0,0,0,.16); cursor:pointer;">
+  [style.visibility]="brandingReady ? 'visible' : 'hidden'">
 
-  <ng-container *ngIf="videoEnabled && computedLauncherVideoSrc; else imgTpl">
-    <video
-      #launcherVideo
-      [src]="computedLauncherVideoSrc"
-      preload="auto"
-      playsinline
-      webkit-playsinline
-      muted
-      [attr.autoplay]="isIOSDevice ? '' : null"
-      style="display:block; width:100%; height:100%; object-fit:cover; pointer-events:none;"
-    ></video>
-  </ng-container>
+  <!-- Unlike the header logo and message avatars, the launcher button
+       always shows something — it's the widget's only visible surface
+       until someone opens it — so computedRobot falls back to the
+       embedded mark when nothing is configured.
 
-  <ng-template #imgTpl>
-    <img
-      [src]="computedRobot"
-      alt=""
-      aria-hidden="true"
-      draggable="false"
-      loading="eager"
-      decoding="async"
-      (error)="onLauncherImgError()"
-      style="display:block; width:100%; height:100%; object-fit:contain; object-position:center; pointer-events:none; -webkit-user-drag:none; user-drag:none;" />
-  </ng-template>
+       Always rendered, even when a video is configured: the video (below)
+       is an overlay that fades in on top of this once it actually has a
+       frame to paint, rather than replacing it outright. Removing this while
+       waiting on the video was what made the button hold its whole reveal
+       hostage to the video's multi-megabyte download. -->
+  <img
+    [src]="computedRobot"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+    loading="eager"
+    decoding="async"
+    (error)="onLauncherImgError()"
+    style="display:block; width:100%; height:100%; object-fit:contain; object-position:center; pointer-events:none; -webkit-user-drag:none; user-drag:none;" />
+
+  <!-- Overlaid on the icon above, absolutely positioned within #bbc-launcher
+       (already `position: fixed`, so this positions relative to it). Starts
+       at opacity 0 and fades in only once onLauncherVideoFrameReady() fires
+       from an actual 'loadeddata'/'canplay' event — the blob URL existing is
+       not the same moment the browser has a frame ready to show, and
+       revealing it a beat early is exactly the flash this is meant to avoid.
+       If neither event ever fires, the video just stays invisibly stacked
+       over the icon, which looks identical to the icon alone — a safe
+       failure mode, not a broken one. -->
+  <video
+    *ngIf="videoEnabled && computedLauncherVideoSrc"
+    #launcherVideo
+    [src]="computedLauncherVideoSrc"
+    preload="auto"
+    playsinline
+    webkit-playsinline
+    muted
+    [attr.autoplay]="isIOSDevice ? '' : null"
+    (loadeddata)="onLauncherVideoFrameReady()"
+    (canplay)="onLauncherVideoFrameReady()"
+    (ended)="onLauncherVideoEnded()"
+    style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; transition: opacity 260ms ease;"
+    [style.opacity]="videoFrameVisible ? 1 : 0"
+  ></video>
 </button>
 
 <div
   #wrapper
   id="bbc-wrapper"
   hidden
-  [attr.aria-hidden]="uiReady ? null : 'true'"
-  style="position:fixed; right:var(--bbc-side-offset); bottom:var(--bbc-side-offset);
-         width:var(--bbc-compact-width); height:var(--bbc-compact-height); z-index:var(--bbc-z);">
+  [attr.aria-hidden]="uiReady ? null : 'true'">
+  <!-- The resize grip, at the panel's top-left.
+       That corner because the opposite one is anchored to the launcher button
+       and must not move — see beginPanelResize(). It sits in this template,
+       not in <blue-search>, so it never has to reach across a shadow root to
+       size the element that owns the size. -->
+  <!-- No *ngIf. It was bound to a getter, and a getter is only re-read when
+       change detection runs — the panel's mode is set from listeners that run
+       outside Angular's zone, so the grip could be absent with nothing in the
+       DOM to explain why. It is always rendered now, and full mode hides it in
+       CSS through the `bbc-full` class positionPanel() already sets. -->
+  <div id="bbc-resize"
+       role="separator"
+       aria-orientation="horizontal"
+       [attr.aria-label]="'Resize'"
+       (pointerdown)="beginPanelResize($event)"></div>
+
+  <!-- Typography is forwarded as inputs rather than left to CSS inheritance
+       from this host: the panel writes --bb-font-size-base on itself from the
+       app config, and a property set on an element beats one inherited from an
+       ancestor — so a host's stated size lost to the configured one. -->
   <blue-search
     #chat
     id="bbc-chat"
-    [mode]="panelMode"
-    [title]="title || 'Assistant'"
-    [welcomeText]="welcometext || ''"
-    [logoSrc]="computedLogo"
-    [logoAlt]="logoalt"
     [appid]="appid"
-    [env]="env"
-    [persist]="persist"
-    [userid]="userid"
+    [assistantid]="assistantid"
+    [envurl]="envurl"
     [gptid]="gptid"
-    [assistandid]="assistandid"
-    [lang]="lang"
-    [defaultLang]="defaultLang"
-    [translations]="translations"
-    [roleLabels]="parsedRoleLabels"
-    [roleAvatars]="parsedRoleAvatars"
-    [roleAvatarImages]="parsedRoleAvatarImages"
-    [roleAvatarBg]="parsedRoleAvatarBg"
-    [headerLogoBg]="headerlogobg"
-    [headerLogoRound]="headerLogoRoundCoerced"
-    [headerLogoInitial]="headerLogoInitialCoerced"
-    [username]="username"
-    [fontFamily]="fontFamilyEffective"
-    [fontSize]="fontSizeEffective"
-    [lineHeight]="lineHeightEffective"
-    [feedbackEnabled]="feedbackEnabledEffective"
-    [storageKey]="historyStorageKey">
+    [defaultlang]="defaultlang"
+    [title]="titleText"
+    [backcolor]="backColor"
+    [messagecolor]="messageColor"
+    [fontcolor]="fontColor"
+    [headerbg]="headerBg"
+    [headertext]="headerText"
+    [fontfamily]="fontFamily"
+    [fontsize]="fontSize"
+    [lineheight]="lineHeight">
   </blue-search>
 </div>

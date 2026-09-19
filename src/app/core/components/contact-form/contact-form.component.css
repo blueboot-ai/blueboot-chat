@@ -1,0 +1,195 @@
+/* Spacing is owned here rather than sprinkled through the template as
+   Bootstrap margin utilities. One scale, applied by the container, is what
+   makes the rhythm even — mb-1 here and mt-3 there is exactly how a form ends
+   up looking improvised.
+
+   Bootstrap still does the components (form-control, btn); this does the
+   layout, the type inheritance shadow DOM needs, and the theming. */
+
+.contact-form {
+  /* Neither tint nor border: the form is already inside the assistant's own
+     bubble, so it sits on the message background like the rest of that turn.
+     A second card drawn inside the first read as a panel dropped into the
+     conversation rather than part of what the assistant said.
+
+     The padding stays — that is spacing, not a frame. */
+  background: transparent;
+  border: 0;
+  padding: 0.875rem 1rem 1rem;
+}
+
+/* One vertical rhythm for every block in the form. Nothing inside carries its
+   own top or bottom margin, so sections cannot drift out of step. */
+.cf-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.cf-stack > * {
+  margin: 0;
+}
+
+/* The model's sentence. Slightly tighter than body text so a two-line question
+   still reads as one paragraph. */
+.cf-reason {
+  line-height: 1.45;
+}
+
+/* Fields stay in one column. In a chat widget barely 380px wide, two columns
+   are cramped rather than efficient, and a single column means every label and
+   every input edge lines up on both sides with no breakpoint bookkeeping. */
+.cf-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.cf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cf-label {
+  font-size: 0.82em;
+  opacity: 0.75;
+  line-height: 1.2;
+}
+
+/* Inherit the conversation's type scale instead of Bootstrap's own. The widget
+   renders in shadow DOM with its own sizing, and without this the form reads
+   as a control panel dropped into a conversation rather than part of it. */
+.cf-input {
+  font-size: inherit;
+  line-height: 1.4;
+  padding: 7px 12px;
+  /* Rounded like the buttons and the mode selector — softer than Bootstrap's
+     default control, so the whole panel reads as one family. */
+  border-radius: 999px;
+  /* Inputs sit on the panel, so they read as inset rather than as another
+     raised surface stacked on top of it. */
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  width: 100%;
+}
+
+.cf-input:focus {
+  background: rgba(255, 255, 255, 0.9);
+  outline: none;
+}
+
+.cf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Shaped like the chat-mode selector's tabs — pill, hairline border, the same
+   compact type — so the form reads as part of this widget rather than a
+   Bootstrap form dropped into it. Bootstrap's .btn is deliberately not used
+   here: its own radius, padding and font-size would fight every rule below.
+
+   Where they differ from the selector is deliberate: those tabs are a state
+   toggle, these are actions, so the primary one carries the widget's accent
+   colour instead of the raised-white "selected" look. */
+.cf-btn {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82em;
+  line-height: 1;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+
+  transition: background-color 0.15s ease, color 0.15s ease,
+              box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.cf-btn:focus-visible {
+  outline: 2px solid var(--bb-header-bg, #25518f);
+  outline-offset: 2px;
+}
+
+.cf-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* The accent colour the header uses, so the primary action is recognisably
+   this app's rather than Bootstrap blue. */
+.cf-btn-primary {
+  background: var(--bb-header-bg, #25518f);
+  color: #fff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.11);
+}
+
+.cf-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* The selector's unselected tab: present and pressable, without competing
+   with the primary. Still a real button — declining to share details is a
+   second way to go ahead, not an escape. */
+.cf-btn-quiet {
+  background: var(--bb-mode-ruler-bg, rgba(0, 0, 0, 0.07));
+  color: var(--bb-mode-ruler-fg, #5b6472);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.cf-btn-quiet:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* The way out, and the only control here that does not go ahead — so no fill
+   and no border at all. Both buttons beside it send the request; this one
+   withdraws it, and giving it the same weight would turn a pair with a clear
+   default into three options of equal standing. Reads as a link, sits last. */
+.cf-btn-cancel {
+  background: none;
+  border-color: transparent;
+  color: var(--bb-muted, #6b7280);
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.cf-btn-cancel:hover:not(:disabled) {
+  color: var(--bb-text, #111827);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cf-note {
+  font-size: 0.8em;
+  opacity: 0.65;
+  line-height: 1.35;
+}
+
+/* ── Answered ─────────────────────────────────────────────────────────── */
+
+.cf-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  line-height: 1.45;
+}
+
+/* Values line up under one another regardless of how long each label is.
+   Grid, not a table: it needs no breakpoint handling and collapses cleanly. */
+.cf-answer {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+  align-items: baseline;
+  /* Indented to sit under the ✅, so the acknowledgement reads as one block. */
+  margin-left: 1.6rem;
+}
+
+.cf-answer-value {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

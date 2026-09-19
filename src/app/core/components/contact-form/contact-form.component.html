@@ -1,0 +1,120 @@
+<!-- Layout and spacing live in contact-form.component.css, not as margin
+     utilities here: one scale applied by the container is what keeps the
+     rhythm even. Bootstrap still supplies the components themselves.
+
+     A soft panel inside the assistant bubble — enough of an edge to read as
+     something to act on, not so much that it looks like a modal that
+     interrupted the conversation. -->
+<div class="contact-form">
+
+  <!-- ── Answered ─────────────────────────────────────────────────────────
+       The inputs are gone once answered: leaving them invites a second
+       submission and makes it unclear whether the first registered. -->
+  <div *ngIf="answered; else formTpl" class="cf-stack">
+
+    <!-- Sent without details. Say what happened rather than thanking them for
+         something they did not give. -->
+    <div *ngIf="wasSkipped; else sharedTpl" class="cf-result">
+      <span aria-hidden="true">👍</span>
+      <span>{{ t('contactSkipped') || 'No problem — I’ve asked someone to help you.' }}</span>
+    </div>
+
+    <!-- Otherwise show exactly what was sent. They just handed over personal
+         details, so being able to see and re-read what left the browser is
+         the difference between an acknowledgement and a claim. -->
+    <ng-template #sharedTpl>
+      <div class="cf-result">
+        <span aria-hidden="true">✅</span>
+        <span>{{ t('contactThanks') || 'Thanks — I have passed this on:' }}</span>
+      </div>
+
+      <div class="cf-answer">
+        <ng-container *ngFor="let line of answerLines">
+          <span class="cf-label">{{ line.label }}</span>
+          <span class="cf-answer-value">{{ line.value }}</span>
+        </ng-container>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- ── The form ─────────────────────────────────────────────────────── -->
+  <ng-template #formTpl>
+    <div class="cf-stack">
+
+      <!-- The model's own sentence, in the visitor's language. Normal size: it
+           is what a person would say, and shrinking it to fine print makes it
+           read like a disclaimer. -->
+      <p *ngIf="reason" class="cf-reason">{{ reason }}</p>
+
+      <div class="cf-fields">
+        <div class="cf-field" *ngFor="let field of fields">
+          <label class="cf-label" [attr.for]="'cf-' + message.id + '-' + field.key">
+            {{ labelFor(field) }}
+          </label>
+          <input class="cf-input"
+                 [id]="'cf-' + message.id + '-' + field.key"
+                 [(ngModel)]="values[field.key]"
+                 [name]="'cf-' + message.id + '-' + field.key"
+                 [placeholder]="placeholderFor(field.key)"
+                 (keyup.enter)="onSubmit()"
+                 autocomplete="off">
+        </div>
+      </div>
+
+      <div class="cf-actions">
+        <button type="button" class="cf-btn cf-btn-primary"
+                [disabled]="!canSubmit" (click)="onSubmit()">
+          {{ t('contactSubmit') || 'Save info' }}
+        </button>
+
+        <!-- Not a way to cancel — the second way to go ahead. Someone who does
+             not want to leave details still wants help, so this is a real
+             button rather than a quiet link: both send the request, and the
+             pair reads as a choice instead of an action and an escape. -->
+        <button *ngIf="skippable" type="button"
+                class="cf-btn cf-btn-quiet"
+                (click)="onSkip()">
+          {{ t('contactSkip') || 'Continue without info' }}
+        </button>
+
+        <!-- Withdraw the request entirely. The two buttons above both go
+             ahead — one with details, one without — so until now there was no
+             way out for someone who asked for a person by accident, or who
+             found their answer while the form was open.
+
+             Quieter still than "send without info", and last: it is the exit,
+             not a third way to proceed, and it should not compete with either
+             of the buttons that do what the visitor originally asked for. -->
+        <!-- Erase what is remembered, and stay on the form.
+             Not a fourth way out: the three buttons above all end the request
+             one way or another, while this one reaches back and removes details
+             given earlier, leaving the form open to type new ones. Someone who
+             typed a phone number on a shared machine needs a way to take it
+             back that is not "wait for the cache to lapse".
+
+             Hidden when there is nothing stored and nothing typed — a Clear
+             button beside two empty fields cannot do anything, and the visitor
+             cannot tell that from one that silently failed. -->
+        <button *ngIf="canClear" type="button"
+                class="cf-btn cf-btn-quiet"
+                (click)="onClear()">
+          {{ t('contactClear') || 'Clear saved details' }}
+        </button>
+
+        <button type="button"
+                class="cf-btn cf-btn-cancel"
+                (click)="onCancel()">
+          {{ t('contactCancel') || 'Cancel' }}
+        </button>
+      </div>
+
+      <!-- Said once, at the bottom, rather than "(optional)" after every
+           label: the repetition reads as nagging, and this also answers the
+           question the labels raise — where is this going? -->
+      <div class="cf-note">
+        {{ t('contactPrivacyNote') || 'Optional — saved on this device and sent with your next message, only to the person who replies to you.' }}
+      </div>
+    </div>
+  </ng-template>
+
+</div>

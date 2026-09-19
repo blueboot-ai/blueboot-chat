@@ -1,0 +1,116 @@
+/* Segmented control above the composer — which of two places the next message
+   goes to. Small, but it must never be ambiguous: a visitor who thinks they
+   are talking to a person while writing to the model (or the reverse) has a
+   bad time, and the previous version stated the answer in a 12% tint that was
+   easy to miss entirely. */
+
+.mode-ruler {
+  display: inline-flex;
+  gap: 0.125em;
+  padding: 0.125em;
+  /* No outer margin: the gap to whatever sits below is the container's to
+     decide, and the two containers want different things — the embed keeps
+     the selector tight against its input frame, the panel gives it more room.
+     Owning it here meant the embed's own spacing was added to this one and the
+     two never matched. */
+  margin: 0;
+  border-radius: 999px;
+  /* No track. The two tabs carry the choice on their own — the selected one is
+     a raised thumb — and a filled, outlined rail around them was a second box
+     in a composer that already has enough edges. */
+  background: transparent;
+  border: 0;
+  max-width: 100%;
+}
+
+.mode-ruler.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.mode-tab {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74em;
+  line-height: 1;
+  /* Generous on the sides: with the track gone the tab's own padding is the
+     only thing holding the label off the edge of the thumb. */
+  padding: 0.34em 2em;
+  border-radius: 999px;
+  /* The conversation's own colour, not a slate grey of its own.
+     #5b6472 was fine on a default widget and wrong on every themed one: with a
+     fontColor set, this control was the one piece of text still rendering in a
+     colour nobody chose. currentColor is whatever the widget inherited, which
+     is the definition of "the same as the rest of the text".
+
+     The variable stays ahead of it so an app that deliberately sets
+     --bb-mode-ruler-fg still wins. */
+  color: var(--bb-mode-ruler-fg, currentColor);
+  white-space: nowrap;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34em;
+
+  transition: background-color 0.15s ease, color 0.15s ease,
+              box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.mode-icon {
+  width: 0.95em;
+  height: 0.95em;
+  flex: none;
+  /* Present but quiet on the unselected side: enough to distinguish the two
+     options, not so much that both look active. */
+  opacity: 0.75;
+}
+
+.mode-tab:hover:not(.active):not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* The selected side is a raised thumb, the way a physical switch has one.
+   A surface change reads instantly at any size and in peripheral vision,
+   which a colour tint of the same flat shape does not. */
+.mode-tab.active {
+  background: var(--bb-mode-thumb-bg, #fff);
+  /* Same colour as the inactive side. The selected state is already said twice
+     over — by the raised thumb and by the weight — and a third signal in a
+     navy that came from --bb-header-bg, a parameter the embed no longer even
+     has, only made the control disagree with the text around it. */
+  font-weight: 650;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.11);
+}
+
+.mode-tab.active .mode-icon {
+  opacity: 1;
+}
+
+/* Keyboard users get the same clarity as mouse users. */
+.mode-tab:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.mode-tab:disabled {
+  cursor: default;
+}
+
+/* On a very narrow widget the labels are what get squeezed, not the control:
+   the icons stay, so the two sides remain distinguishable even when the text
+   has to truncate. */
+@media (max-width: 340px) {
+  .mode-tab {
+    padding: 0.34em 1.1em;
+    gap: 0.25em;
+  }
+
+  .mode-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

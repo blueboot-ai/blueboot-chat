@@ -1,17 +1,1045 @@
-/* Page wrapper: keep chat centered and not huge */
-.bb-embed-wrap {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+/* =========================================
+   src/app/widget2/embed/embed.component.css
+
+   Merged from the old embed.component.css (outer wrapper) and
+   chat-embed.component.css (inner chat UI). Single shadow root now, so
+   :host is the <blue-search-embed> element itself and the CSS custom
+   properties below are the ones the component sets directly.
+   ========================================= */
+
+:host {
+  --bb-font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  /* --bb-font-size-base is deliberately NOT declared here — see the
+     matching comment in chat.component.css. It's what an explicit
+     fontSize (@Input or widgetParams) sets, via
+     applyEmbedTypographyVarsFrom(); a plain "--bb-font-size-base: 16px;"
+     rule here would be a value SPECIFIED on this element, which always
+     beats an INHERITED one, so the 16px fallback is supplied only where
+     the variable is actually read below. --bb-font-size is the one every
+     rule in this file reads; the @media rule below scales it relative to
+     whatever the base actually is — configured override or the 16px
+     fallback alike. */
+  --bb-font-size: var(--bb-font-size-base, 16px);
+  --bb-line-height: 1.45;
+  --bb-text: #111827;
+
+  /* Stacking order of the open panel. The floor, not the ceiling.
+     Declared here rather than left as an inline fallback on the one rule
+     that reads it, so there is a single place the default lives and a host
+     page setting --bbc-z in its own style attribute still overrides it
+     (a value on this element beats one declared here).
+
+     1 is the lowest value that still lifts a positioned element above the
+     page's ordinary content, which is all a widget on someone else's site
+     should assume for itself. It was 2147483647 — the maximum — which
+     claimed instead that nothing of the host's may ever cover the panel,
+     their own menus and modals included, and left them no way to disagree:
+     there is nothing above the maximum to raise their own UI to. A host
+     that does want the widget higher says so with the zindex parameter,
+     which is now the only thing that decides this (EmbedComponent.zIndex,
+     applied through applyZIndexVar()). Kept in step with the same default
+     in launcher.component.css. */
+  --bbc-z: 1;
+
+  /* Derived from the text colour, not a fixed grey.
+     fontColor sets the text; muted has to follow it or half the widget —
+     labels, timestamps, the attribution, placeholders — stays slate grey while
+     the rest turns. A translucent share of currentColor is the same colour,
+     quieter, and it works on a dark background where a fixed grey does not.
+
+     currentColor resolves where the variable is *used*, not here, so this
+     picks up whatever colour is inherited at each of those places. */
+  --bb-muted: #6b7280;
+  --bb-muted: color-mix(in srgb, currentColor 62%, transparent);
+  /* Chrome outside the conversation — the feedback modal and its buttons. The
+     message bubbles have their own pair below and no longer read this. */
+  --bb-border: #e5e7eb;
+
+  /* ---- Message bubbles ---------------------------------------------------
+     Their own two properties, set by the messageColor / messageBorderColor
+     inputs, because three attempts at deriving them from the theme were each
+     wrong in a different way and the honest answer is that this is a choice,
+     not a calculation:
+
+       #e5e7eb fixed          — a near-white hairline; the white line that
+                                showed between messages on a tinted card.
+       currentColor mix       — correct contrast, but the border became the font
+                                colour only paler, so every bubble was outlined
+                                in a wash of the text.
+       inverse at 32% alpha   — still read as the card colour: at that alpha the
+                                background under it dominates whatever is over
+                                it, so on a red card the line looks red.
+
+     Both fall back to the theme when the inputs are unset, so a widget that
+     configures neither behaves as before. -------------------------------- */
+
+  /* --bb-msg-back is deliberately NOT declared here — same reason as
+     --bb-input-bg above, and it was got wrong once already.
+
+     It was declared as `var(--bb-back, #ffffff)`, on the theory that --bb-back
+     would resolve wherever the property was eventually read. It does not: a
+     var() inside a custom property is substituted at computed-value time on the
+     element carrying the declaration, so it resolved against :host's own
+     --bb-back — the #ffffff default — and every bubble inherited hardcoded
+     white regardless of backColor. (currentColor is the exception that made
+     this look plausible: it is kept as a token and resolved at use. var() is
+     not.)
+
+     Undeclared, the places that read it supply the chain themselves:
+     var(--bb-msg-back, #ffffff), evaluated where the configured value has
+     actually arrived. messageColor still wins when set — the template writes
+     the property on .embed-card and the fallback stops applying.
+
+     The fallback is plain white, not --bb-back. Bubbles used to inherit the
+     card colour when messageColor was unset, which meant a widget with a
+     tinted background had no visible bubbles at all: the conversation and the
+     card were the same colour, and the only thing separating one message from
+     the next was spacing. White is the sensible default for a message on a
+     coloured ground, and a customer who genuinely wants bubbles the colour of
+     their card can say so by setting messageColor to the same value. */
+
+  /* There is deliberately no --bb-msg-border.
+     The bubbles are unoutlined: four derivations were tried here (fixed grey,
+     a mix of currentColor, the inverse at 32%, the inverse at full) and each
+     was a different kind of wrong, which is the signal that the line itself was
+     the problem rather than its colour. What separates one message from the
+     next is the 1px row gap and the fill, and neither needs an outline to be
+     read.
+
+     If bubbles ever need to be distinguishable from the card behind them, that
+     is what messageColor is for — a different fill, not an edge. */
+  --bb-back: #ffffff;
+  --bb-link: #2563eb;
+
+  /* --bb-input-bg is deliberately NOT declared here.
+     It used to default to #ffffff, which meant the input frame stayed white on
+     a card the customer had tinted — and because a value SPECIFIED on this
+     element always beats an inherited one, the card's own --bb-back could
+     never reach it. Undeclared, the places that read it can fall back to
+     var(--bb-back), which resolves where they actually sit: inside .embed-card,
+     where the configured colour lives. An app that sets inputBg still wins —
+     the template writes the variable and the fallback stops applying. */
+  --bb-input-border: #e5e7eb;
+  --bb-send-bg: #111827;
+  --bb-send-fg: #ffffff;
+
+  /* ---- Spacing scale -----------------------------------------------------
+     Every gap, pad and radius below is expressed in em, so the widget's whole
+     rhythm follows the configured fontSize instead of only its words. At the
+     16px default each one computes to the pixel value it used to be — 0.75em
+     is 12px, 0.5em is 8px — so nothing moves until someone changes the type.
+
+     Why it matters: at 25px the text was half again as large while the padding
+     around it stayed at 16px-sized values, so the widget did not read as
+     "bigger", it read as cramped. Spacing is part of type, not a constant
+     beside it.
+
+     em, not rem. rem is the *host page's* root font size — a widget dropped
+     into someone else's site would take its spacing from their stylesheet and
+     change shape depending on whose page it is on. em on :host resolves
+     against this element's own font-size, which is --bb-font-size, which is
+     the fontSize parameter.
+
+     Declared here rather than at each use: a var() holding an em is resolved
+     once, on this element, so every reader gets the same computed pixel value
+     rather than re-resolving against whatever local font-size it happens to
+     sit in (the message body is 0.93em, the chips 0.82em — spacing that
+     compounded through those would be a different size in every box).
+
+     A few things are deliberately NOT in this scale and stay in px: hairline
+     borders (a 1px line is 1px at any type size — scaling it makes it blurry
+     or heavy), the 1px gap between messages, and the minimum-size floors on
+     icons and tap targets, which exist precisely to stop scaling below a
+     usable size.
+     --------------------------------------------------------------------- */
+
+  /* One set of box metrics for every stacked surface: the user bubble, the
+     assistant bubble and the input shell. They sit directly above each other at
+     the same width, so any difference in radius or padding reads as a wobble
+     down the left and right edges. Previously: bubbles 14px / 8px 10px, input
+     shell 4px / 6px 8px 6px 12px. */
+  --bb-box-radius: 0.75em;
+  --bb-box-pad-y: 0.625em;
+
+  /* The input shell hugs the field: the textarea already carries its own
+     4px top/bottom, so the shell only needs enough to clear it. Separate from
+     --bb-box-pad-y, which is the message bubbles' and wants the room.
+     5px (not 3px) so the round help icon clears --bb-box-radius vertically —
+     at 3px the icon sat inside the corner's curve and visibly poked past the
+     shell's own rounded edge. */
+  --bb-input-pad-y: 0.3125em;
+
+  /* The height of one line in the composer, and the height of everything that
+     sits on that line.
+     The textarea is capped at exactly this (see .embed-textarea) and the help
+     and send buttons are set to it, so nothing in the row is taller than the
+     row's own text. Before, the send button was sized from its own em ratio
+     and came out taller than the field it lived in — so it, not the text, was
+     what set the composer's height, and the frame moved whenever the icon
+     rules changed.
+
+     1.4em is the textarea's line-height, 0.5em is its 0.25em top and bottom
+     padding. Declared here rather than repeated in three rules so those three
+     cannot drift apart. */
+  --bb-input-line: calc(1.4em + 0.5em);
+
+  /* Kept 2px above --bb-box-radius rather than equal to it: exactly equal
+     put the leading icon's edge tangent to the corner arc, which read as the
+     icon's own rounding overshooting the shell outline. */
+  --bb-box-pad-x: 0.875em;
+
+  /* Between the inner boxes: message to message, last message to the input. */
+  --bb-box-gap: 0.5em;
+
+  /* Between the outer frame and the boxes inside it. Was 2px — tight enough
+     that the message bubbles and input shell looked like they were touching
+     the frame, which read as cramped rather than deliberate. 10px gives the
+     content room to breathe without costing much height on someone else's
+     page. */
+  --bb-frame-gap: 0.3125em;
+
+  /* Thickness of that frame. Costs no layout — see .embed-shell::after. */
+  --bb-frame-border: 1px;
+
+  /* Frame colour.
+     Was a fixed navy, overridden inline from headerBg. That parameter is gone
+     from the embed — the widget has no coloured chrome — so the ring derives
+     from the text colour instead, the same way the suggestion chips' borders
+     do: a fraction of currentColor is the one value guaranteed to read against
+     whatever background the card ends up with, light or dark.
+
+     Stronger than the chips' 28%, because this is the widget's outer edge
+     against a host page rather than a control inside it, and it is the only
+     thing separating the two. */
+  --bb-frame-color: rgba(127, 127, 127, 0.45);
+  --bb-frame-color: color-mix(in srgb, currentColor 38%, transparent);
+
+  /* Outer frame corner. The card takes this minus the gap so the curves stay
+     concentric — the frame is painted over the card, so they meet exactly. */
+  --bb-frame-radius: 0.875em;
+
+  display: block;
+  width: 100%;
+
+  /* The overlay is positioned against this element, which is what pins its
+     upper-left corner and width to the inline frame's — no measuring, and it
+     tracks page scroll for free because it stays in document coordinates. */
+  position: relative;
+
+  font-family: var(--bb-font-family);
+  font-size: var(--bb-font-size);
+  line-height: var(--bb-line-height);
+  color: var(--bb-text);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Mobile bump, relative to whatever --bb-font-size-base actually is — the
+   16px default, or an explicit fontSize override, either way. */
+@media (max-width: 600px) {
+  :host {
+    --bb-font-size: calc(var(--bb-font-size-base, 16px) * 1.5);
+
+    /* No outer frame on a phone.
+       The widget runs the full width of the screen there, so the ring is not
+       drawing a box around something — it is a hairline hugging the two screen
+       edges, which reads as a rendering artefact rather than as an edge. On
+       desktop the widget sits in a column with page either side, and the frame
+       is what separates it from that page; with nothing beside it there is
+       nothing to separate it from.
+
+       Zeroing the variable is enough: the ring is painted by
+       .embed-shell::after and costs no layout, so nothing moves.
+
+       The radius goes with it. A rounded corner at the very edge of the screen
+       shows a wedge of the host page through it — visible precisely because
+       the background is the widget's own colour and the page's is not. */
+    --bb-frame-border: 0;
+    --bb-frame-radius: 0;
+  }
+}
+
+:host,
+:host * {
   box-sizing: border-box;
 }
 
-.bb-embed-inner {
+/* .embed-shell is the template root — it sits directly under :host. The
+ * .bb-embed-wrap / .bb-embed-inner pair that used to wrap it existed only to
+ * force layout onto the separate inner element this component was merged from,
+ * and centered nothing once that element was gone. */
+
+/* ---- Overlay -------------------------------------------------------------
+   Same top-left corner and same width as the inline frame, by construction:
+   the panel is absolutely positioned against :host, which *is* the inline box.
+   It grows downward over the page, with the input row staying exactly where
+   the visitor last typed.
+
+   Not modal: the page behind stays scrollable and clickable.
+
+   The one exposure is an ancestor on the customer's page with overflow:hidden,
+   which clips us where position:fixed would have escaped. Our own wrappers are
+   opened up below so they can never be the cause.
+   -------------------------------------------------------------------------- */
+
+.embed-shell.is-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  /* No inline fallback here: --bbc-z is declared on :host above, which is
+     the one place the default lives. A second one written here could only
+     ever disagree with it. */
+  z-index: var(--bbc-z);
+
+  /* No drop shadow. The overlay is meant to read as part of the page it opens
+     on, and a 32px shadow is what makes something read as floating above it
+     instead. The card inside still has its own 1px lift (.embed-card), which
+     is enough to separate it from what it covers without announcing itself as
+     a separate window. */
+
+  /* The panel never grows past the bottom of the window.
+     max-height is the mechanism, and it is chosen precisely because it wins
+     over everything else that sets a height here — including the inline
+     `height` applyWindowBox() writes on every pointermove of a resize. Those
+     are different properties, so this is not a specificity contest that an
+     inline style wins: a used height is clamped to max-height afterwards,
+     whatever set it. A resize can therefore be dragged past the bottom edge
+     and simply stops growing, with no code in the drag path to say so.
+
+     --bb-panel-top is the panel's own distance from the top of the viewport,
+     written alongside the inline `top` by applyWindowBox(). Without it the cap
+     would be a flat 100dvh, which is only correct for a panel sitting at the
+     very top: one placed 200px down would still be allowed a full screen of
+     height and run 200px past the bottom. Unset — the inline, undragged case —
+     it falls back to 0, which is exactly where that panel starts.
+
+     dvh with a vh fallback, as elsewhere: 100vh on mobile excludes the
+     retracting address bar and would let the panel end up under it. */
+  max-height: calc(100vh - var(--bb-panel-top, 0px));
+  max-height: calc(100dvh - var(--bb-panel-top, 0px));
 }
 
-/* Ensure the custom element behaves like a full-width block */
-blue-search-inner-embed {
-  display: block;
+.embed-placeholder {
+  /* Only used when we never saw the inline box — see inlineHeightPx. */
+  min-height: var(--bb-inline-min-height, 56px);
+}
+
+.embed-shell {
+  position: relative;
+  display: flex;
+  justify-content: center;
   width: 100%;
+  border-radius: var(--bb-frame-radius);
+  box-sizing: border-box;
+
+  /* No real border: it is drawn by ::after below, on top of the card. A border
+     here would instead sit outside it and take layout on every side.
+     border-color is what ::after inherits — nothing overrides it inline any
+     more, so --bb-frame-color is the single source. */
+  border: 0 solid;
+  border-color: var(--bb-frame-color);
+}
+
+/* The frame, painted over the card rather than around it. inset:0 puts it on
+   the shell's own edge, and border-color: inherit picks up --bb-frame-color
+   from the section above. */
+.embed-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: var(--bb-frame-border) solid;
+  border-color: inherit;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.embed-card {
+  /* No tint variable any more, deliberately.
+     There used to be one — the message background stepped darker — used by the
+     visitor's bubble and the input frame so the two surfaces the visitor writes
+     in read as one thing. It was mixed first with grey, then with the text
+     colour, then with a warm yellow, and each mixer had the same class of
+     problem: a derived colour cannot be right for every palette a customer
+     configures. Grey desaturated it, currentColor moved its hue, yellow warmed
+     it, and on some background each of those reads as dirt rather than depth.
+
+     Both surfaces now take --bb-msg-back plainly, exactly as the assistant's
+     own bubbles do. One configured colour, used as configured, nothing derived
+     from it. If the visitor's messages ever need to be distinguishable from the
+     assistant's, that is a second configured colour, not a computed shade of
+     the first. */
+
+  width: 100%;
+  max-width: 100%;
+  /* Clips children to the rounded corner. Without it the input row — full
+     width, square corners, its own background — paints past the curve and
+     shows outside the frame. The overlay panel is an ancestor, not a child,
+     so this cannot clip it; the feedback modal is position:fixed and escapes. */
+  overflow: hidden;
+  /* Same radius as .embed-shell, not shell-minus-gap: the card has no margin
+     of its own, so its edge sits flush on the shell's edge (the frame ring
+     painted by ::after is what's inset:0 there too). Shrinking the radius by
+     --bb-frame-gap assumed the card was inset by that amount; it isn't — only
+     its children are, via the padding below — so the smaller radius was
+     tighter than the frame ring's curve and the card's corner poked out past
+     it. Concentric requires matching radius when there's no offset between
+     the two edges. */
+  border-radius: var(--bb-frame-radius);
+  /* The only inset between the frame and what is in it, on all four sides. The
+     children add none of their own, so the input shell and the message bubbles
+     span this content box exactly — same width as each other. */
+  padding: var(--bb-frame-gap);
+  /* Flat. The card used to carry a 1px lift, which is the smallest shadow that
+     still says "this sits on top of the page" — and sitting on top of the page
+     is the thing the embed is not supposed to look like. Its background and
+     radius are enough to hold it together; separation from the content behind
+     it comes from the frame ring, not from depth. */
+  background: var(--bb-back);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.embed-history {
+  position: relative;
+  /* Viewport-relative cap, not a large fixed pixel value: the overlay is
+     position:absolute against :host and grows over the underlying page
+     rather than pushing it down, so a big fixed height (e.g. 1500px) can
+     reach far enough down a real page to overlap unrelated page content —
+     including, on at least one page, the footer intercepting clicks meant
+     for our own input. Capping relative to the viewport keeps the panel
+     comfortably on-screen regardless of how tall the page below it is. */
+  max-height: min(600px, 70vh);
+  overflow-y: auto;
+  /* No inset of its own — the card owns the gap. A scrollbar, when the
+     conversation is long enough to need one, takes its 6px from this box and
+     narrows the bubbles by that much while it is there. That is the trade for
+     the two surfaces agreeing on width the rest of the time; reserving space
+     for it permanently is what made the input and the bubbles disagree. */
+  padding: 0;
+  margin-bottom: var(--bb-box-gap);
+  -webkit-overflow-scrolling: touch;
+}
+
+.embed-history::-webkit-scrollbar { width: 6px; }
+.embed-history::-webkit-scrollbar-track { background: transparent; }
+.embed-history::-webkit-scrollbar-thumb {
+  background: #CBD5F5;
+  border-radius: 999px;
+}
+.embed-history::-webkit-scrollbar-thumb:hover { background: #9CA3F0; }
+
+/* The message itself — .msg-row, .msg-bubble, .msg-header, .msg-label, the
+   spinner, the arrow, the send status, the toolbar and the copy button — moved
+   to core/components/message/message.component.css with the markup. The panel
+   carried a second, drifting copy of all of it.
+
+   .msg-body and .msg-info below did NOT move, and cannot: bb-message-body ships
+   no stylesheet, so emulated encapsulation would scope those rules to an
+   attribute its elements never carry. They only work from here, a ShadowDom
+   host. The same rules live in chat.component.css for the same reason. */
+
+.msg-body {
+  display: block;
+  font-size: 0.93em;
+  font-family: inherit;
+  line-height: inherit;
+  color: inherit;
+
+  /* Long URLs and unbroken tokens must not widen the bubble. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+bb-message-body {
+  display: contents;
+}
+
+.msg-body img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Stops markdown's own stylesheet imposing a font on the rendered output.
+   line-height is deliberately NOT forced to `inherit` here: that !important
+   was overriding the message-body component's looser line spacing, which is
+   the one place the value should be decided. Same custom property, so the two
+   files cannot drift. */
+.msg-body,
+.msg-body * {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: var(--bb-msg-line-height, 1.65) !important;
+  color: inherit !important;
+}
+
+.msg-body p { margin: 0 0 0.5em 0 !important; }
+.msg-body p:last-child { margin-bottom: 0 !important; }
+
+.msg-body ul,
+.msg-body ol {
+  margin: 0.35em 0 0.35em 1.2em !important;
+  padding: 0 !important;
+  list-style-position: outside !important;
+}
+
+.msg-body li {
+  margin: 0.15em 0 !important;
+  padding: 0 !important;
+}
+
+.msg-body li::marker {
+  font-family: inherit !important;
+  font-size: inherit !important;
+}
+
+.msg-body h1,
+.msg-body h2,
+.msg-body h3,
+.msg-body h4,
+.msg-body h5,
+.msg-body h6 {
+  margin: 0.6em 0 0.3em 0 !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+}
+
+.msg-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+  "Liberation Mono", "Courier New", monospace !important;
+  font-size: 0.95em !important;
+}
+
+.msg-body pre {
+  white-space: pre-wrap;
+  margin: 0.5em 0 !important;
+  padding: 0.625em 0.75em !important;
+  border-radius: 10px !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+  overflow: auto !important;
+}
+
+.msg-body blockquote {
+  margin: 0.5em 0 !important;
+  padding-left: 0.75em !important;
+  border-left: 3px solid rgba(15, 23, 42, 0.18) !important;
+  color: rgba(17, 24, 39, 0.85) !important;
+}
+
+.msg-body a {
+  color: var(--bb-link) !important;
+  text-decoration: underline !important;
+}
+
+/* The status line ("Searching…"), shown only until content replaces it.
+   Same size as the panel widget's, so the two surfaces read alike — it is
+   scaffolding, not content, and should not compete with the message text. */
+.msg-info {
+  display: block;
+  /* em, not rem: rem is the host page's root size, so the status line was the
+     one piece of text in the widget scaled by someone else's stylesheet. */
+  font-size: 0.7em;
+  color: var(--bb-muted, inherit);
+}
+
+.embed-input-row {
+  margin-top: 0;
+  padding: 0;
+}
+
+/* The composer's own rules — the input frame, the "?", the send button, the
+   attribution and the contact-edit trigger — moved to
+   core/components/composer/composer.component.css with the markup. The panel
+   used to carry a second, drifting copy of all of it. */
+
+/* .btn-icon went with them. Its last user was the copy button on a message,
+   which the shared message component now styles as .copy-btn. */
+
+/* ---- An overlay grows inward, not downward -------------------------------
+   The shell already refuses to pass the bottom of the window: its max-height is
+   calc(100dvh - --bb-panel-top), and a used height is clamped to that whatever
+   set it. What was missing is anyone giving up room INSIDE that cap. The card
+   was content-sized, so its height was history + composer, and a composer that
+   grew simply made the card taller — straight past the clamp, with the input
+   ending up under the bottom edge of the screen.
+
+   So the card is a column and the conversation is the part that yields. Exactly
+   what the block below does once the visitor has dragged a height, and what the
+   panel has always done (.chat / .history in chat.component.css). It only bit
+   here after the box stopped being pinned to a single line.
+
+   flex: 0 1 auto, not 1 1 auto: the history still takes only the room its
+   messages need — an inline embed with two messages must not stretch to fill
+   the screen — but it can now be squeezed when something else needs the space.
+   min-height: 0 is what allows that squeeze at all; without it a flex item
+   refuses to shrink below its content. ------------------------------------ */
+.embed-shell.is-overlay .embed-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.embed-shell.is-overlay .embed-history {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+/* ---- Moved / resized panel ----------------------------------------------
+   Applied by applyWindowBox() as inline styles, not by a class: the geometry
+   changes on every pointermove and inline styles avoid a change-detection pass
+   per frame. These rules only cover what inline styles cannot say.
+
+   A panel given an explicit height must let the conversation take the slack,
+   or the history keeps its own max-height and the footer floats in the middle
+   of an over-tall box. The attribute selector outranks the block above, so
+   these still win once a height has been dragged. --------------------------- */
+.embed-shell.is-overlay[style*="height"] .embed-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.embed-shell.is-overlay[style*="height"] .embed-history {
+  flex: 1 1 auto;
+  /* Overrides the min(600px, 70vh) default — once the visitor has set a
+     height, that is the height. */
+  max-height: none;
+}
+
+/* ---- Mobile: the open panel takes the screen ------------------------------
+   On a phone the panel is already full width (the drag/resize controls are not
+   offered on a coarse pointer, so applyWindowBox never runs and the shell keeps
+   its absolute, auto-height geometry). Auto height is what makes it wrong: the
+   panel grows downward from wherever the inline box sits in the document, so a
+   long conversation runs off the bottom of the page and a short one leaves the
+   composer floating halfway up.
+
+   Fixed to the viewport instead, top to bottom edge.
+
+   Must come after the .embed-shell.is-overlay block above: same specificity, so
+   source order is what decides. Moving this earlier in the file silently
+   restores position:absolute.
+
+   dvh, with vh on the line before it as the fallback: on mobile Safari and
+   Chrome 100vh is the viewport *without* the retracting address bar, which puts
+   the composer under it until the visitor scrolls.
+   ------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+  .embed-shell.is-overlay {
+    position: fixed;
+
+    /* The whole screen, from the very top. On a phone the panel is not a
+       window, it is the screen, and a strip of the host's menu left above it
+       only makes the panel look like it failed to reach the top.
+
+       The page underneath is held still while this is up (see
+       body-scroll-lock.functions.ts), so covering the header does not strand
+       anyone: closing the panel gives it straight back. */
+    top: 0;
+    left: 0;
+    width: 100%;
+
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Same two rules as the resized-panel block above, for the same reason: a
+     shell with a height its contents did not choose has to hand the slack to
+     the conversation, or the history keeps its own max-height and the input row
+     sits in the middle of the screen. Written out rather than shared with that
+     block because it keys off an inline height attribute, which is exactly what
+     this case does not have. */
+  .embed-shell.is-overlay .embed-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .embed-shell.is-overlay .embed-history {
+    flex: 1 1 auto;
+    max-height: none;
+
+    /* A flex item's default min-height is its content, which stops it shrinking
+       below that and pushes the composer off the bottom instead of scrolling.
+       The desktop rule gets away without this because the box is rarely shorter
+       than its contents; a fixed-height panel on a phone always is. */
+    min-height: 0;
+  }
+}
+
+/* Grab affordance on the title bar, and only when it can actually be dragged:
+   a move cursor on a page where the controls are hidden is a lie. */
+.embed-header.draggable {
+  cursor: move;
+  /* A drag across a title bar selects the title otherwise, which leaves the
+     text highlighted after every move. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.embed-resize {
+  position: absolute;
+  right: 0.125em;
+  bottom: 0.125em;
+  z-index: 3;
+
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: nwse-resize;
+  /* On the card, like the header row — see ChatCoreComponent.surfaceText. */
+  color: var(--bb-surface-text, var(--bb-muted));
+  opacity: .45;
+
+  /* Nothing here should be selectable or start a native drag. */
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.embed-resize:hover {
+  opacity: .9;
+}
+
+/* The title bar, overlay only.
+   Transparent on purpose — the embed sits inside a host page's design, and a
+   coloured band would be the widget imposing its own. The hairline is the
+   whole separation. */
+.embed-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+
+  /* The containing block for the language panel, which is absolutely
+     positioned and spans this row's full width (lang-picker.component.css).
+     The chat panel's own header gets this from `position: sticky`; this row is
+     not sticky, so without it the panel would resolve against some ancestor
+     further up and be positioned against the wrong box. Nothing else in the
+     header is absolutely positioned, so this changes no existing layout. */
+  position: relative;
+
+  padding: 0.375em var(--bb-box-gap);
+  border-bottom: 1px solid var(--bb-mode-ruler-bg, rgba(128, 128, 128, .16));
+  /* 2.125em is the old 34px; the floor keeps it a usable strip when the type
+     is very small, the same pattern the icon sizes use. */
+  min-height: max(2.125em, 28px);
+
+  /* Clear of whatever comes next — the first message, or the composer when the
+     conversation is empty. The border-bottom is the header's own edge, so
+     without this the content starts directly on the line and reads as being
+     inside the header rather than under it. */
+  margin-bottom: 0.375em;
+
+  /* The whole row's colour is stated here, once, and everything in it inherits:
+     the title, the two buttons, and the language globe — which is a separate
+     component and can only take `color: inherit`, since the panel header it
+     also lives in needs headerText instead. Derived from the card the row sits
+     on rather than taken from fontColor; see ChatCoreComponent.surfaceText. */
+  color: var(--bb-surface-text, var(--bb-text));
+}
+
+/* Takes the room; the button beside it does not move as the title changes
+   length. Truncated rather than wrapped — a long assistant name must not turn
+   the header into two rows in a widget where every row costs height. */
+.embed-header-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  font-size: 0.9em;
+}
+
+/* Top-right of the panel — where a visitor looks for both of these: one to
+   start over, one to put it away. Shared shape so they read as a pair of
+   header controls rather than two unrelated glyphs. */
+.embed-header-btn,
+.embed-collapse {
+  flex: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* A round target rather than a bare glyph. Without the shape an icon-only
+     control on a footer line reads as an ornament next to the attribution —
+     the circle is what says "this is a button", which the word used to say. */
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+
+  padding: 0;
+  border: none;
+  background: none;
+
+  /* From the header row, like everything else on it. */
+  color: inherit;
+  opacity: .8;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.embed-header-btn:hover,
+.embed-collapse:hover {
+  opacity: 1;
+  background: rgba(128, 128, 128, .14);
+}
+
+/* Coarse pointers: below the 24px minimum a tap target should be, so grow the
+   hit area without growing the glyph. */
+@media (pointer: coarse) {
+  .embed-header-btn,
+  .embed-collapse {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.embed-header-btn:focus-visible,
+.embed-collapse:focus-visible {
+  outline: 2px solid var(--bb-link);
+  outline-offset: 2px;
+}
+
+/* The suggestion row moved to core/components/suggestion-chips, which ships
+   its own stylesheet. .embed-suggestions, .suggestion-chip and .more-chip went
+   with it — .more-chip had already outlived the markup that used it. */
+
+/* The feedback row's rules are gone from here too. The embed used to carry a
+   hand-written copy of app-chat-feedback's markup, and a hand-written copy of
+   its styles to go with it; the component ships both. Restating them here would
+   also have lost every conflict — a child's emulated rules carry an extra
+   attribute selector and outrank a ShadowDom parent's copy of the same
+   selector, which is how the two drifted without anyone noticing. */
+
+/* Popup */
+.feedback-modal-backdrop {
+  position: fixed;
+  inset: 0;
+
+  /* Derived from --bbc-z like everything else, rather than the flat
+     2147483646 this used to be — one below the old maximum, which is to say
+     it asserted the second-highest stacking position on the host's page and
+     ignored the zindex parameter completely.
+
+     That was only invisible because of where it sits. In overlay mode this
+     is inside .embed-shell.is-overlay, which has a z-index and so contains
+     it; the huge number never escaped and only ordered the backdrop against
+     the panel's own layers. Inline mode is the case that matters: there
+     .embed-shell is `position: relative` with no z-index and therefore not
+     a stacking context, so a position:fixed child at 2147483646 goes
+     straight into the page's root stacking order — and every host on the
+     inline widget got their entire site covered, above their own modals and
+     menus, the moment a visitor opened the feedback or new-chat dialog.
+
+     +10 keeps both cases right. Contained in overlay mode it clears the
+     panel's internal layers (.embed-resize at 3 is the highest). Escaping
+     in inline mode it sits just above whatever level the widget itself was
+     given, which is the most a modal of ours is entitled to: at the default
+     that is 11, and a host who raised the widget to 1200 gets 1210. */
+  z-index: calc(var(--bbc-z) + 10);
+  background: rgba(15, 23, 42, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75em;
+}
+
+.feedback-modal {
+  width: min(300px, calc(100vw - 24px));
+  background: var(--bb-back);
+  color: var(--bb-text);
+  border: 1px solid var(--bb-border);
+  border-radius: 0.75em;
+  box-shadow: 0 18px 50px rgba(2, 6, 23, 0.18);
+  padding: 0.625em;
+}
+
+.feedback-title {
+  font-size: calc(var(--bb-font-size) * 0.857);
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 0.375em;
+  color: var(--bb-text);
+}
+
+.feedback-subtitle {
+  font-size: calc(var(--bb-font-size) * 0.786);
+  line-height: 1.3;
+  color: var(--bb-muted);
+  margin-bottom: 0.5em;
+}
+
+/* The one box left that is not the composer, and it takes the message colour
+   like the composer does — see the same rule in chat.component.css. */
+.feedback-input {
+  width: 100%;
+  min-height: 74px;
+  max-height: 150px;
+  resize: vertical;
+  border: 1px solid rgba(127, 127, 127, .28);
+  background: var(--bb-msg-back, #ffffff);
+  color: var(--bb-text);
+  border-radius: 0.625em;
+  padding: 0.5625em 0.625em;
+  outline: none;
+  font-family: inherit;
+  font-size: calc(var(--bb-font-size) * 0.857);
+  line-height: 1.3;
+}
+
+.feedback-input::placeholder {
+  color: var(--bb-muted);
+  opacity: 0.9;
+}
+
+.feedback-input:focus {
+  border-color: var(--bb-link);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.feedback-actions {
+  margin-top: 0.5em;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.375em;
+}
+
+.feedback-actions button {
+  border: 1px solid var(--bb-border);
+  background: var(--bb-back);
+  color: var(--bb-text);
+  border-radius: 0.5625em;
+  padding: 0.375em 0.625em;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: calc(var(--bb-font-size) * 0.786);
+  font-weight: 600;
+  line-height: 1;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.05s ease;
+}
+
+.feedback-actions button:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.feedback-actions button:active {
+  transform: translateY(1px);
+}
+
+.feedback-actions button:first-child {
+  background: var(--bb-send-bg);
+  color: var(--bb-send-fg);
+  border-color: transparent;
+}
+
+.feedback-actions button:first-child:hover {
+  filter: brightness(0.98);
+}
+
+@media (max-width: 600px) {
+  .feedback-modal {
+    width: min(100%, calc(100vw - 16px));
+    border-radius: 0.75em;
+    padding: 0.625em;
+  }
+
+  .feedback-input {
+    min-height: 84px;
+    /* Floor, not a straight conversion: below 16px, iOS Safari auto-zooms
+       the page on focus. Still grows with a larger --bb-font-size (via the
+       same 1.143x ratio as everywhere else), just never drops under the
+       zoom-prevention threshold if the base is set smaller than 16px. */
+    font-size: max(16px, calc(var(--bb-font-size) * 1.143));
+  }
+}
+
+/* =========================================================================
+   Icons scale with the type
+   =========================================================================
+
+   Every icon and icon button in this file was a fixed pixel size, which meant
+   a widget configured at 20px type had 13px glyphs sized for 16px type: the
+   words grew and the controls beside them did not, so the composer row and the
+   message toolbars drifted further out of proportion the larger the font got.
+
+   Deliberately one block at the end rather than edits scattered through the
+   file. Each rule here restates an earlier one in em, and being last is what
+   makes it win at equal specificity — so the original declarations are left in
+   place as the record of what the pixel sizes were, and this section can be
+   deleted whole to get them back.
+
+   Two rules govern every value below.
+
+   1. Slightly larger than the type, not equal to it. An icon drawn at exactly
+      1em looks smaller than the letters beside it: a glyph is a shape inside
+      its box with its own padding, where a letter fills most of its own. The
+      ratios here are the old pixel sizes multiplied by about 1.15, which is
+      what makes the two read as the same weight rather than measure the same.
+
+   2. Never below 12px. Under that an icon stops being recognisable at a
+      glance — the difference between a thumbs-up and a thumbs-down is a few
+      pixels of outline — and it stops being reliably tappable. max() is the
+      whole mechanism: the em term wins at any normal size and the floor only
+      takes over when a host configures type small enough for it to matter.
+
+   em, not rem: rem is the host page's root font size, which is exactly what a
+   widget dropped into someone else's site must not depend on. em resolves
+   against the element's own inherited size, which traces back to
+   --bb-font-size and therefore to the fontSize parameter.
+   ------------------------------------------------------------------------- */
+
+/* Buttons must inherit the type before any em inside them can mean anything.
+   This is the rule the whole section depends on. A <button> does not inherit
+   font-size from its parent — every browser gives form controls their own UA
+   default, around 13.3px — so an icon sized in em inside an unstyled button
+   resolves against that default and is fixed for good. The header controls and
+   the composer triggers were exactly the icons that would not follow
+   fontSize, and this is why: they are buttons, and the ones that did follow
+   are plain elements or were pinned to a value resolved on :host.
+
+   `font: inherit` rather than `font-size: inherit` so family, weight and style
+   come too — a button that inherits only the size still renders its label in
+   the UA's own font. */
+.embed-shell button {
+  font: inherit;
+}
+
+/* The inline SVGs that carry width/height attributes in the template (13, 12,
+   16, 14, 18…). A CSS declaration beats a presentation attribute, so this one
+   rule replaces all of them. Icons wanting a different proportion restate it
+   below. */
+.embed-shell svg {
+  width: max(1.15em, 12px);
+  height: max(1.15em, 12px);
+}
+
+.embed-header-btn,
+.embed-collapse {
+  width: max(1.85em, 12px);
+  height: max(1.85em, 12px);
+}
+
+.embed-resize {
+  width: max(1.15em, 12px);
+  height: max(1.15em, 12px);
+}
+
+/* The coarse-pointer bump, restated.
+   A media query adds no specificity, so the rule further up the file would
+   have lost to this block and taken the touch targets back down with it. The
+   point of that rule is a target big enough for a thumb, which is worth more
+   than the proportion — so it is repeated here, in em, where it can win. */
+@media (pointer: coarse) {
+  .embed-header-btn,
+  .embed-collapse {
+    width: max(2.3em, 12px);
+    height: max(2.3em, 12px);
+  }
 }

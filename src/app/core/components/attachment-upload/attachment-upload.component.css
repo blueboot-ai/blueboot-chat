@@ -1,0 +1,118 @@
+/* Lives on the input-functions ruler, shared by both widget surfaces, so it is
+   expressed against the widget's own tokens (--bb-*) rather than either
+   surface's local rules. */
+
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375em;
+  min-width: 0;
+}
+
+/* The host sets display, which beats the browser's own [hidden] rule — so the
+   surfaces that hide the control at rest need this to make [hidden] bite. It is
+   hidden rather than removed so a paste still has something to validate the
+   files against. */
+:host([hidden]) {
+  display: none;
+}
+
+/* Off-screen rather than display:none — a hidden input can't be opened by
+   .click() in every browser, and visually-hidden keeps it operable. */
+.au-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Same silhouette as the emoji picker's trigger, since they sit side by side
+   and are the same kind of thing: a small icon action on the composer. */
+.au-trigger {
+  appearance: none;
+
+  /* Before anything else: a <button> does not inherit font-size, so without
+     this every em below resolves against the browser's own ~13.3px control
+     default and the trigger is fixed at that size whatever fontSize says. */
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Scales with the composer's text, with a floor. See the icon block at the
+     end of embed.component.css for the two rules behind these numbers: a shade
+     larger than 1:1 so the glyph reads at the same weight as the words, and
+     never so small that it stops being recognisable or tappable. */
+  width: max(2em, 12px);
+  height: max(2em, 12px);
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  /* --bb-surface-text is derived from the widget background by the surface
+     (see ChatCoreComponent.surfaceText), so the glyph inverts on a dark widget
+     the way the header's icons do. The muted grey stays as the fallback for
+     anything rendering this control outside a widget. */
+  color: var(--bb-surface-text, var(--bb-muted, #6b7280));
+  opacity: .8;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease, opacity .15s ease;
+}
+
+/* The glyph, sized here rather than by the embed's own icon block.
+   This component has its own shadow root, so no selector in
+   embed.component.css can reach inside it — the width="18" height="18" on the
+   template's <svg> survived every rule there, and the paperclip stayed 18px
+   while the button around it grew with the type.
+
+   Same ratio and floor as the icons that stylesheet does reach, so the two
+   sets stay one family. */
+.au-trigger svg {
+  display: block;
+  width: max(1.15em, 12px);
+  height: max(1.15em, 12px);
+}
+
+/* Hover comes up to full strength rather than switching to the brand navy it
+   used to: that navy only read on a light widget, and on a dark one hovering
+   made the icon harder to see, not easier. The hover background says the rest. */
+.au-trigger:hover:not(:disabled) {
+  background: var(--bb-mode-ruler-bg, rgba(127, 127, 127, .14));
+  opacity: 1;
+}
+
+.au-trigger:focus-visible {
+  outline: 2px solid var(--bb-header-bg, #25518f);
+  outline-offset: 2px;
+}
+
+.au-trigger:disabled {
+  cursor: default;
+  opacity: .45;
+}
+
+/* Truncates rather than wrapping: the ruler is one line, and a long message
+   pushing it to two would shift the composer under the visitor's cursor. */
+.au-error {
+  /* em, not rem: rem is the host page's root size, so this line would have
+     been scaled by whatever site the widget is embedded in. */
+  font-size: .7em;
+  line-height: 1.2;
+  color: var(--bb-error, #b42318);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+@media (pointer: coarse) {
+  .au-trigger {
+    width: max(2.45em, 12px);
+    height: max(2.45em, 12px);
+  }
+}

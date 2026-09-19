@@ -1,0 +1,283 @@
+/* Shared by the panel composer and the embed input row, so everything here is
+   expressed against the widget's own tokens (--bb-*) rather than either
+   surface's local rules. Bootstrap is not used: this renders inside shadow DOM
+   on a customer's page, where the global stylesheet does not reach and .btn is
+   not guaranteed to exist.
+
+   Deliberately parallel to emoji-picker.component.css. The two are siblings on
+   one strip, and any difference in trigger size becomes a change in the ruler's
+   height when live-chat mode adds the emoji button — which moves the whole
+   composer under the visitor's cursor. */
+
+/* NOT position: relative.
+   It was, and that was the whole clipping problem: an absolutely positioned
+   panel resolves against its nearest positioned ancestor, so the panel was
+   anchored to this 2em globe and sized against nothing. Without it the panel
+   resolves to the HEADER instead — sticky in the chat panel, and given
+   position: relative in embed.component.css for exactly this — which spans the
+   widget's full width and is the coordinate space the panel actually wants. */
+:host {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── Trigger ───────────────────────────────────────────────────────────── */
+.lp-trigger {
+  appearance: none;
+
+  /* A <button> does not inherit font-size, so the em sizing below is
+     meaningless without this. */
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Exactly the attachment and emoji trigger size. See the note above. */
+  width: max(2em, 12px);
+  height: max(2em, 12px);
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+
+  /* Inherited, not a fixed grey. This control sits in the header, whose
+     background and text colour are both set per site — a hardcoded --bb-muted
+     would be a grey globe on a dark blue band, or invisible on a dark one. The
+     header's own icons take their colour the same way. */
+  color: inherit;
+  cursor: pointer;
+  transition: background-color .15s ease, opacity .15s ease;
+}
+
+/* Sized here rather than by the icon block in embed.component.css, which
+   cannot reach into this component's own styles. */
+.lp-trigger svg {
+  display: block;
+  width: max(1.15em, 12px);
+  height: max(1.15em, 12px);
+}
+
+/* A neutral translucent wash rather than a named colour: it darkens a light
+   header and lightens a dark one, so one rule works on whatever band a site
+   has configured. Naming --bb-header-bg here — as the ruler version did —
+   would tint the icon with the colour it is sitting on. */
+.lp-trigger:hover:not(:disabled),
+.lp-trigger.open {
+  background: rgba(128, 128, 128, .28);
+}
+
+/* currentColor for the same reason: the outline has to be visible against the
+   header, and the header's own text colour is the one thing guaranteed to be. */
+.lp-trigger:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.lp-trigger:disabled {
+  cursor: default;
+  opacity: .45;
+}
+
+/* ── Panel ─────────────────────────────────────────────────────────────
+   Anchored to the HEADER, not to the globe: full widget width, starting under
+   the header, at the widget's own left edge.
+
+   It used to be anchored to the trigger and 280px wide, and it was being cut
+   off. The widget is clipped twice over — app-chat's :host and the launcher's
+   #bbc-wrapper are both overflow:hidden — and neither a z-index nor a stacking
+   context gets a child out of a clip; position:fixed would, and is ruled out by
+   the house rule in chat.component.css. So the fix is not to escape the frame
+   but to stop needing to: a panel that starts at the frame's left edge and
+   spans its full width uses the room the widget already has, and hangs down
+   over the messages instead of off the side.
+
+   That answered the sideways clip and not the downward one: hanging below the
+   header, the grid was cut at the frame's bottom edge in any widget short
+   enough — an empty conversation is about 150px, and three rows of names do
+   not fit under a header in that. So the rules below take the whole frame
+   instead. This block is the fallback for when there is no frame to take.
+
+   Painting over the messages is free here. The panel lives inside the header,
+   which is sticky with a z-index of its own, so everything in it already
+   stacks above the conversation. */
+.lp-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+
+  /* Above the sticky header it lives in, and above everything the header
+     stacks over. It cannot escape the widget frame itself — app-chat's :host
+     and #bbc-wrapper are both overflow:hidden, and no z-index leaves a clip —
+     which is why .cover takes the clip's own box rather than trying to get
+     past it. */
+  z-index: 40;
+
+  /* No width: left/right give it the widget's own, whatever that is. A fixed
+     280px was both too wide for a narrow launcher panel — where it overhung
+     and was clipped — and too narrow to show eighteen names on a wide embed. */
+
+  /* Fixed white with black text, not the widget's palette.
+     This is a menu, not part of the conversation: eighteen endonyms in three
+     columns, several of them in scripts the reader may not know, and the only
+     job is that every one of them is legible. Taking --bb-bubble-bg and
+     --bb-text meant the list inherited whatever contrast a customer's colours
+     happened to give it, and a widget with a dark message colour got a dark
+     menu with dark labels.
+
+     Stated, never inherited, for a second reason too: the trigger sits in the
+     header, which on most sites is white text on a coloured band, so inheriting
+     would have put white text on white. */
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, .12);
+  border-radius: 0.75em;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+  overflow: hidden;
+
+  color: #111827;
+
+  /* The header sets its own colour on itself, so the text-shadow and weight a
+     site's header carries would follow the panel down. Reset to the widget's
+     own body type. */
+  font-weight: 400;
+  text-shadow: none;
+}
+
+/* As many columns as the width allows, rather than a fixed three. The panel is
+   as wide as the widget, and that varies from a narrow launcher panel to a
+   full-width embed — auto-fill gives two columns in the first and five or six
+   in the second from one rule, where the fixed three columns had to be sized
+   for the narrowest case and then overhung it anyway. The 6.5em floor is what
+   keeps the longest endonym ("Українська") off the ellipsis.
+
+   No max-height, and in the drop-down fallback no scrolling either: a cap in
+   this stylesheet cannot be right, because the only honest ceiling is the
+   frame that clips us and that is a runtime number. See .cover below, which is
+   the case that actually has a bound. */
+.lp-scroll {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5em, 1fr));
+  gap: 0.125em;
+  padding: 0.3em;
+}
+
+/* ── Covering the frame ─────────────────────────────────────────────────
+   The panel cannot escape the widget, so it takes all of it instead.
+
+   Everything that positions this comes from fitToFrame(): width, height, and a
+   transform carrying the offset from the panel's laid-out spot to the frame's
+   corner. Nothing here may assume which element the picker was dropped into —
+   the composer's ruler and two different headers all host it.
+
+   right: auto because left: 0 and right: 0 are both set above. With an inline
+   width that is over-constrained, and the box the browser drops depends on the
+   writing direction — right in LTR, left in RTL. Dropping `right` explicitly
+   means `left` is the anchor in both, which is what the measured offset was
+   taken against.
+
+   Square and flat: the panel is now exactly the frame, and the frame does its
+   own rounding by clipping. A radius here would show the frame's background in
+   four corners, and a drop shadow has nothing to fall on. */
+.lp-panel.cover {
+  right: auto;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* Where the frame is too short for all eighteen — an empty conversation is
+   header, welcome and input row, and there is not much of it — the grid gives
+   up its own height and scrolls. flex: 1 with min-height: 0 is what allows
+   that: a flex item's default min-height is its content, which would push the
+   grid past the frame and back into being cut off.
+
+   overflow-y: auto, not scroll: in a tall widget the whole set fits, no
+   scrollbar appears, and the grid keeps the property it was built for. */
+.lp-panel.cover .lp-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+
+  /* Aligned to the top rather than stretched: with room to spare, three rows
+     of names centred in a tall panel read as floating. */
+  align-content: start;
+}
+
+/* The sheet has no chrome — no heading row, no close button. It carried both
+   briefly and neither earned its line: the names identify the list, and every
+   way out (pick, click outside, Escape) is already there. */
+
+.lp-option {
+  appearance: none;
+  font: inherit;
+
+  /* Smaller than a full-width row can afford to be: this is a grid of names,
+     read by scanning rather than line by line. */
+  font-size: 0.9em;
+
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+
+  width: 100%;
+  padding: 0.4em 0.45em;
+  border: none;
+  border-radius: 0.5em;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+
+  /* Left in every cell, whatever the cell's own script: this is a grid in a
+     Latin-ordered panel, and letting the Arabic and Hebrew names flip to the
+     right would ragged them against their column. The lang attribute on the
+     element still gives the browser what it needs for font and shaping. */
+  text-align: left;
+
+  transition: background-color .12s ease;
+}
+
+.lp-option:hover {
+  background: rgba(128, 128, 128, .18);
+}
+
+.lp-option:focus-visible {
+  outline: 2px solid var(--bb-header-bg, #25518f);
+  outline-offset: -2px;
+}
+
+.lp-label {
+  /* Truncated rather than wrapped: a two-line row in a list of one-line rows
+     reads as two entries. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The active language is marked by its cell, not by a tick.
+   A tick earned its place in a single column, where it sat in a straight line
+   down the right edge and a coloured row would have read as hover. In a grid
+   there is no such line — eighteen ticks scattered across three columns is
+   noise, and the cell itself is the clearer mark. */
+.lp-option.current {
+  background: color-mix(in srgb, var(--bb-header-bg, #25518f) 14%, transparent);
+}
+
+.lp-option.current .lp-label {
+  font-weight: 600;
+}
+
+/* Coarse pointers get bigger targets — comfortable with a mouse is fiddly with
+   a thumb. */
+@media (pointer: coarse) {
+  .lp-trigger {
+    width: max(2.45em, 12px);
+    height: max(2.45em, 12px);
+  }
+
+  .lp-option {
+    padding: 0.55em 0.5em;
+  }
+}

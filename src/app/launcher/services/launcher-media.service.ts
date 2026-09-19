@@ -2,8 +2,6 @@ import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class LauncherMediaService {
-  readonly transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
-
   private readonly mediaPlayedWindowKey = '__BB_LAUNCHER_MEDIA_PLAYED__';
 
   isIOS(): boolean {
@@ -22,36 +20,11 @@ export class LauncherMediaService {
     (window as any)[this.mediaPlayedWindowKey] = !!v;
   }
 
-  normalizeSrc(input: string | undefined, assetsBase: string, fallbackFile?: string): string {
-    const val = (input || '').trim();
-
-    if (!val) {
-      if (!fallbackFile) return '';
-
-      const endsWithImg = assetsBase.endsWith('img/');
-      const file = endsWithImg
-        ? fallbackFile.replace(/^\/?img\//, '')
-        : fallbackFile.startsWith('img/')
-          ? fallbackFile
-          : `img/${fallbackFile}`;
-
-      return this.joinAsset(assetsBase, file);
-    }
-
-    if (/^(data:|blob:)/i.test(val)) return val;
-
-    const isAbs = /^([a-z]+:)?\/\//i.test(val) || val.startsWith('/');
-    return isAbs ? val : this.joinAsset(assetsBase, val);
-  }
-
-  joinAsset(base: string, rel: string): string {
-    let b = base.replace(/\\/g, '/');
-    let r = rel.replace(/\\/g, '/').replace(/^\/+/, '');
-
-    if (b.endsWith('img/') && r.startsWith('img/')) r = r.slice(4);
-    if (r.startsWith('assets/')) r = r.slice(7);
-
-    return b + r;
+  /** Passes an already-resolved src through as-is (data:/blob: or absolute
+   *  URL). There is no CDN assets base to resolve a relative path against any
+   *  more — callers are expected to supply a usable src or nothing at all. */
+  normalizeSrc(input: string | undefined): string {
+    return (input || '').trim();
   }
 
   stopVideo(video?: HTMLVideoElement): void {
@@ -62,7 +35,23 @@ export class LauncherMediaService {
     } catch {}
   }
 
-  primeIOSFrameOnce(video: HTMLVideoElement | undefined, onFallback?: () => void): void {
+  /**
+   * Forces a decoded, paintable frame onto a <video> that has never played.
+   *
+   * Named for where this was first needed — iOS Safari does not paint
+   * anything for a <video> until playback has actually started at least
+   * once, even after 'loadeddata'/'canplay' report a frame is available —
+   * but the same is true of desktop Safari (same WebKit engine, same
+   * quirk), and calling this on a browser that does not need it (Chrome,
+   * Firefox) is harmless: play()+immediate pause() on an already-muted
+   * video is silent and over in a frame or two. So this runs unconditionally
+   * for every platform rather than being gated to iOS specifically — the
+   * launcher used to only call this on iOS, which left the closed bubble's
+   * video invisible on desktop Safari until the visitor opened the chat
+   * (the click handler there calls .play() for real, which is what first
+   * painted a frame).
+   */
+  primeVideoFrameOnce(video: HTMLVideoElement | undefined, onFallback?: () => void): void {
     if (!video) return;
 
     const tryPaint = () => {

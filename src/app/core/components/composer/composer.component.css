@@ -1,0 +1,415 @@
+/* The shared message box. Ported from the embed's version, which was the
+   further along of the two — see composer.component.ts.
+
+   Everything here is expressed against the widget's own tokens (--bb-*) with a
+   fallback, because the two surfaces declare different subsets of them: the
+   embed card declares the whole --bb-box-* / --bb-input-* family, the panel
+   declares none of it. The fallbacks are the embed's values, so a surface that
+   says nothing gets the embed's proportions.
+
+   em, not rem, throughout: rem is the host page's root size, so every measure
+   here would otherwise be scaled by whatever site the widget is embedded in.
+   The max(…, 12px) floors keep a control recognisable and tappable when the
+   type is very small. */
+
+:host {
+  display: block;
+  flex: 0 0 auto;
+}
+
+/* Flush with the input frame below it, and close to it: this is a label for the
+   frame directly beneath, and a wider gap reads as a separate row. */
+.cmp-mode-selector {
+  display: block;
+  margin: 0 0 0.125em;
+}
+
+/* ---- The input frame --------------------------------------------------- */
+
+/* No border. What the visitor is about to write and what they have already
+   written are one surface, and an outline around only the composer made it a
+   separate box sitting under the conversation.
+
+   The message background, not a separate --bb-input-bg: the input *is* a
+   message background, so there is nothing left for a second colour to disagree
+   with. The textarea and buttons inside stay transparent so nothing paints its
+   own box over this one. */
+.cmp-shell {
+  display: flex;
+  align-items: center;
+  gap: var(--bb-box-gap, 0.5em);
+  padding: var(--bb-input-pad-y, 0.3125em) var(--bb-box-pad-x, 0.875em);
+  border-radius: var(--bb-box-radius, 0.75em);
+
+  border: 0;
+  background: var(--bb-msg-back, #ffffff);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+
+  /* The whole frame is the target, so it says so — the text cursor covers the
+     padding either side of the textarea, not just the line itself. */
+  cursor: var(--cmp-ibeam-dark);
+  transition: box-shadow .15s ease;
+}
+
+/* ---- The I-beam, drawn rather than borrowed ------------------------------
+   The native text cursor is painted by the OS in one fixed colour with a thin
+   opposite-coloured outline, and CSS can only choose *which* cursor, never what
+   it is painted in. On a mid-tone or dark frame that outline is not enough and
+   the beam goes muddy — which is the one part of this composer that could not
+   be fixed by deriving a colour, because there was no colour to derive.
+
+   So both variants are drawn here: a heavy halo stroke with a thin core stroke
+   over it, which is the same construction the OS uses, at a contrast we choose.
+   Two fixed images rather than one tinted at runtime — a cursor image cannot
+   take currentColor, so the only way to invert it is to swap the file.
+
+   `6 12` is the hotspot: the middle of the bar, so the beam sits where the
+   caret will land rather than hanging below the pointer.
+
+   `, text` is not decoration. Custom cursors are ignored outright on several
+   platforms and are capped at 32x32 on most, so the native beam has to remain
+   the fallback — which also means this is the one thing in the composer that
+   does not scale with fontSize.
+
+   Declared on :host so the frame and the textarea can both read them, and so
+   the pair sits in one place rather than being spelled out at each use.
+   ------------------------------------------------------------------------ */
+:host {
+  --cmp-ibeam-dark:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='24' viewBox='0 0 12 24'><path d='M6 4V20M2.5 4H9.5M2.5 20H9.5' fill='none' stroke='%23ffffff' stroke-width='3.25' stroke-linecap='round'/><path d='M6 4V20M2.5 4H9.5M2.5 20H9.5' fill='none' stroke='%23101820' stroke-width='1.25' stroke-linecap='round'/></svg>") 6 12,
+    text;
+
+  --cmp-ibeam-light:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='24' viewBox='0 0 12 24'><path d='M6 4V20M2.5 4H9.5M2.5 20H9.5' fill='none' stroke='%23101820' stroke-width='3.25' stroke-linecap='round'/><path d='M6 4V20M2.5 4H9.5M2.5 20H9.5' fill='none' stroke='%23ffffff' stroke-width='1.25' stroke-linecap='round'/></svg>") 6 12,
+    text;
+}
+
+/* The surface sets this class when its message colour is dark — see
+   ChatCoreComponent.inputFrameIsDark. :host-context because the class lives on
+   the card or panel around this component, not on the component itself. */
+:host-context(.bb-frame-dark) .cmp-shell,
+:host-context(.bb-frame-dark) .cmp-textarea {
+  cursor: var(--cmp-ibeam-light);
+}
+
+/* Hover and focus states for the frame.
+   There were none: with no border and the message background behind it, a
+   visitor had nothing telling them the box was live until they had already
+   clicked in it and seen a caret. Hover says "you can type here"; focus-within
+   says "you are typing here", and it is the stronger of the two because that is
+   the state that matters while writing.
+
+   An inset shadow rather than a border: a border on hover would change the
+   frame's box and shift everything inside it by a pixel each time the pointer
+   crossed the edge. Neutral grey at low alpha rather than a theme colour, for
+   the same reason the other hover tints in this widget are — it reads on a
+   light frame and on a dark one without knowing which it is on. */
+.cmp-shell:hover {
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, .28);
+}
+
+.cmp-shell:focus-within {
+  box-shadow: inset 0 0 0 2px rgba(127, 127, 127, .42);
+}
+
+.cmp-input-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.cmp-textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  padding: 0.25em 0;
+  font-family: inherit;
+  font-size: 1em;
+  line-height: 1.4;
+
+  /* Grows with the text, up to the cap the host sets (maxHeightPx). The embed
+     used to be pinned to one line — nowrap, capped at --bb-input-line — which
+     meant a visitor could not read back a question longer than the box.
+
+     hidden, not auto: the box is sized to its content by the host's autosize on
+     every keystroke, so there is nothing to scroll and a bar would just sit
+     there. The autosize switches this to auto inline at the moment the text
+     passes the cap, which is the only time scrolling is the answer. */
+  overflow-y: hidden;
+  color: inherit;
+
+  /* The caret is chrome, not content. It takes its colour from `color` by
+     default — fontColor here — so a widget whose text colour sits anywhere near
+     its message background had a caret nobody could find, even though the text
+     being typed was perfectly legible against the bubbles it was headed for.
+     Derived from the frame instead, like the icons and the placeholder beside
+     it; see ChatCoreComponent.inputChromeText. */
+  caret-color: var(--bb-input-chrome, currentColor);
+
+  /* A textarea brings its own native beam, so it has to be told too — the
+     frame's cursor does not reach inside it. */
+  cursor: var(--cmp-ibeam-dark);
+}
+
+/* The welcome line reads as the widget's own words, so it takes the text colour
+   like everything else written in the widget — currentColor, which is fontColor
+   here, dimmed rather than recoloured.
+
+   Deliberately not --bb-input-chrome, which is what the icons and the caret
+   beside it use. Those are chrome and have to be findable on the frame; this is
+   copy, and matching the conversation matters more than maximum contrast
+   against the box it happens to sit in. */
+.cmp-textarea::placeholder {
+  color: currentColor;
+  opacity: .45;
+}
+
+/* ---- The "?" ----------------------------------------------------------- */
+
+.cmp-help {
+  /* Before anything else: a <button> does not inherit font-size, so without
+     this every em below resolves against the browser's own ~13.3px control
+     default. The glyph's box is in em and its type is in --bb-font-size, so at
+     a large font size the text outgrew a box that had stayed small and the "?"
+     was clipped by the overflow rule at the foot of this file. */
+  font: inherit;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 max(1.55em, 12px);
+
+  padding: 0;
+  border: none;
+  background: none;
+  /* On the input frame, like the send button — its ring and its glyph are both
+     currentColor, so this one declaration inverts the whole mark. See
+     ChatCoreComponent.inputChromeText. */
+  color: var(--bb-input-chrome, inherit);
+  cursor: pointer;
+}
+
+.cmp-help:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.cmp-help:hover:not(:disabled) .cmp-help-glyph {
+  opacity: 0.9;
+}
+
+.cmp-help-glyph {
+  width: max(1.55em, 12px);
+  height: max(1.55em, 12px);
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  opacity: 0.55;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--bb-font-size, 16px) * 0.857);
+  font-weight: 600;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* ---- Send -------------------------------------------------------------- */
+
+.cmp-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+}
+
+.cmp-btn {
+  border: none;
+  background-color: transparent;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1em;
+  /* The frame these sit in is painted with --bb-msg-back, so they derive from
+     that rather than from the card — see ChatCoreComponent.inputChromeText. */
+  color: var(--bb-input-chrome, inherit);
+}
+
+.cmp-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The two send glyphs, held to one size.
+   The button shows a branded mark in AI mode and a plain arrow in live chat,
+   and they were once sized by two unrelated rules — so the icon visibly changed
+   size when the mode changed, inside a button that had not.
+
+   Width only for the mark: it is 374x326, so a square height squashes it. At
+   1.5em its height follows its own ratio to about 1.31em — close enough to the
+   arrow that the swap is invisible, which is the point. */
+.cmp-send-logo {
+  display: block;
+  width: max(1.5em, 12px);
+  height: auto;
+}
+
+.cmp-send svg {
+  display: block;
+  width: max(1.5em, 12px);
+  height: max(1.5em, 12px);
+}
+
+/* ---- The attribution, on the ruler ------------------------------------- */
+
+.cmp-footer {
+  margin-right: auto;
+
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0.25em;
+  min-width: 0;
+
+  /* Truncates instead of pushing the attach and emoji buttons off the strip.
+     The attribution yields; the controls do not. */
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* A footnote beside the controls, not a line in its own right. The link leads
+   and the muted text follows, one step smaller. Both take the strip's colour
+   rather than the conversation's — see ChatCoreComponent.surfaceText. */
+.cmp-brand {
+  display: inline-block;
+  color: var(--bb-surface-text, var(--bb-text));
+  text-decoration: none;
+  font-size: calc(var(--bb-font-size, 16px) * 0.64);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.cmp-brand:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: .9;
+}
+
+.cmp-madeby {
+  color: var(--bb-surface-text, var(--bb-text));
+  font-size: calc(var(--bb-font-size, 16px) * 0.55);
+  font-weight: 400;
+  opacity: .55;
+  line-height: 1.1;
+
+  /* The half that goes when the strip is narrow — the link is the part worth
+     keeping. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Change my details ------------------------------------------------- */
+
+/* Deliberately the same silhouette and size as the attachment and emoji
+   triggers beside it — round, transparent, icon-only, 2em — because it is the
+   same kind of thing and the strip's height is pinned to that size. A control
+   of a different height here would reintroduce the jump that pinning the
+   ruler's height was meant to stop. */
+.cmp-contact-edit {
+  appearance: none;
+  font: inherit;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+
+  width: max(2em, 12px);
+  height: max(2em, 12px);
+  padding: 0;
+
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  /* On the ruler, which sits on the widget background with no band of its own —
+     see ChatCoreComponent.surfaceText. */
+  color: var(--bb-surface-text, var(--bb-muted));
+  opacity: .8;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease, opacity .15s ease;
+}
+
+.cmp-contact-edit svg {
+  display: block;
+  width: max(1.15em, 12px);
+  height: max(1.15em, 12px);
+}
+
+.cmp-contact-edit:hover:not(:disabled) {
+  background: var(--bb-mode-ruler-bg, rgba(127, 127, 127, .14));
+  opacity: 1;
+}
+
+.cmp-contact-edit:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.cmp-contact-edit:disabled {
+  cursor: default;
+  opacity: .45;
+}
+
+@media (pointer: coarse) {
+  .cmp-contact-edit {
+    width: max(2.45em, 12px);
+    height: max(2.45em, 12px);
+  }
+}
+
+/* ---- The row is sized by its text, not by its icons --------------------
+   Everything on the input line takes the line's own height. The send button was
+   the tallest thing in the shell — max(2.3em, 12px) against a field of
+   1.4em + 8px — so the frame's height was really the button's, and any change
+   to an icon ratio moved the input box under the visitor's cursor.
+
+   Last in the file so it wins over the ratios above at equal specificity.
+
+   Square: width follows height, so the buttons stay round rather than becoming
+   ovals when the line height changes.
+
+   center, not flex-end. flex-end was tried when the box became growable, on the
+   idea that the buttons should ride the last line — but the autosize writes the
+   textarea's height in whole pixels from scrollHeight, which lands a pixel or
+   two off this em-based height even on a single line. Against flex-end that
+   difference is a visible drop, and the "?" ring shows it plainly. Centred, the
+   two agree at one line and the buttons sit mid-frame once it grows, which is
+   what the embed did before the two composers were merged.
+
+   The glyphs inside are untouched and still scale with the type — this caps the
+   button, not the icon. A glyph can therefore be asked to be larger than its
+   button at very small font sizes, which is what overflow: hidden and the flex
+   centring already handle.
+   ---------------------------------------------------------------------- */
+.cmp-shell .cmp-btn,
+.cmp-shell .cmp-help {
+  width: var(--bb-input-line, calc(1.4em + 0.5em));
+  height: var(--bb-input-line, calc(1.4em + 0.5em));
+  flex: none;
+  align-self: center;
+  overflow: hidden;
+}
+
+@media (max-width: 600px) {
+  .cmp-textarea {
+    /* Floor, not a straight conversion: below 16px, iOS Safari auto-zooms the
+       page on focus. Still grows with a larger --bb-font-size, just never drops
+       under the zoom-prevention threshold. */
+    font-size: max(16px, 1em);
+  }
+}

@@ -1,0 +1,141 @@
+<footer #composerRef class="cmp">
+  <app-chat-mode-selector
+    *ngIf="chatModeVisible"
+    class="cmp-mode-selector"
+    [mode]="chatMode"
+    [aiLabel]="chatModeAiLabel"
+    [agentLabel]="chatModeAgentLabel"
+    [disabled]="isSending"
+    (modeChange)="chatModeChange.emit($event)">
+  </app-chat-mode-selector>
+
+  <div class="cmp-shell" (pointerdown)="focusFromFrame($event)">
+    <!-- Asks the assistant how to use this, in the visitor's language.
+         A real button, not the decorative mark it replaced: it is the only
+         affordance a first-time visitor has before typing anything. -->
+    <button
+      type="button"
+      class="cmp-help"
+      (click)="helpRequested.emit()"
+      [disabled]="isSending"
+      [attr.title]="t('helpPrompt') || 'Help me use this'"
+      [attr.aria-label]="t('helpPrompt') || 'Help me use this'"
+    >
+      <span class="cmp-help-glyph" aria-hidden="true">?</span>
+    </button>
+
+    <div class="cmp-input-wrapper">
+      <textarea
+        #inputRef
+        class="cmp-textarea"
+        [style.max-height.px]="maxHeightPx"
+        [placeholder]="placeholder"
+        [ngModel]="userMessage"
+        (ngModelChange)="onMessageChange($event)"
+        name="message"
+        rows="1"
+        (keydown)="keydownEvent.emit($event)"
+        (paste)="onPaste($event)"
+        (input)="inputEvent.emit()"
+        (focus)="focusEvent.emit()"
+        (blur)="blurEvent.emit()"
+      ></textarea>
+    </div>
+
+    <div class="cmp-buttons">
+      <button
+        type="button"
+        class="cmp-btn cmp-send"
+        [disabled]="!userMessage.trim() || isSending"
+        (click)="sendMessage.emit()"
+        [attr.title]="t('send') || 'Send'"
+        [attr.aria-label]="t('send') || 'Send'"
+      >
+        <!-- The branded mark says "ask the assistant"; in live chat the message
+             goes to a person, so a plain arrow is the honest icon.
+             See useBrandSendIcon. -->
+        <ng-container *ngIf="useBrandSendIcon; else sendArrow">
+          <img [src]="sendIconReady" alt="" aria-hidden="true" class="cmp-send-logo" />
+        </ng-container>
+
+        <ng-template #sendArrow>
+          <svg viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               aria-hidden="true">
+            <path d="M3 11L21 3L13 21L11 13L3 11Z"
+                  stroke-width="2"
+                  stroke-linejoin="round"/>
+          </svg>
+        </ng-template>
+      </button>
+    </div>
+  </div>
+
+  <!-- The functions ruler, under the input frame. Anything acting on the
+       message being written goes in here. -->
+  <app-input-functions [t]="t" [hidden]="!rulerVisible">
+    <!-- The attribution shares this strip rather than taking a row of its own
+         below it: the widget sits inside someone else's page, and the ruler was
+         already there with empty space on its left.
+
+         `margin-right: auto` rather than switching the ruler to space-between —
+         with three children that would spread the tools apart too. This pushes
+         one item left and leaves them grouped at the right where they belong. -->
+    <div class="cmp-footer" *ngIf="!isEmpty">
+      <a class="cmp-brand"
+         href="https://blueboot.ai"
+         target="_blank"
+         rel="noopener noreferrer">
+        {{ t('madeByLinkLabel') || 'BlueSearch' }}
+      </a>
+
+      <span class="cmp-madeby">
+        {{ t('madeByFooter') || 'Made by © Blueboot' }}
+      </span>
+    </div>
+
+    <!-- Hidden at rest — see isNeutral. Hidden, not removed: onPaste routes
+         pasted files through this component's own validation. -->
+    <app-attachment-upload [hidden]="isNeutral"
+                           [t]="t"
+                           [limits]="chatLimits"
+                           [attachedCount]="attachedCount"
+                           [disabled]="isSending"
+                           (picked)="attachmentPicked.emit($event)">
+    </app-attachment-upload>
+
+    <!-- Live chat only: emoji belong in a conversation with a person, not in a
+         knowledge-base query. On the ruler rather than inside the input frame,
+         alongside the other tools that act on the message. -->
+    <app-emoji-picker *ngIf="emojiPickerVisible"
+                      [t]="t"
+                      [disabled]="isSending"
+                      (picked)="onEmojiPicked($event)">
+    </app-emoji-picker>
+
+    <!-- Change the details the agent sees. Live-chat only, for the same reason
+         the emoji picker is: in model mode there is nobody on the other end for
+         the details to reach, so the control would be collecting information
+         with no destination. -->
+    <button
+      *ngIf="contactEditVisible"
+      type="button"
+      class="cmp-contact-edit"
+      [disabled]="isSending"
+      (click)="contactEditRequested.emit()"
+      [attr.title]="t('contactEditTitle') || 'Change your contact details'"
+      [attr.aria-label]="t('contactEditTitle') || 'Change your contact details'"
+    >
+      <!-- A person with a pencil: the same "edit this" convention the new chat
+           button uses, applied to a person rather than a page. -->
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"
+           stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="7.5" r="3.5"/>
+        <path d="M3 20c0-3.3 2.7-5.5 6-5.5 1 0 1.9.2 2.7.5"/>
+        <path d="M19.2 12.8a1.6 1.6 0 0 1 2.3 2.3L17 19.5l-3 .7.7-3 4.5-4.4z"/>
+      </svg>
+    </button>
+  </app-input-functions>
+</footer>

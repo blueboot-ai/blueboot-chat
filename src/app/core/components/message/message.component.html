@@ -1,0 +1,127 @@
+<!-- The embed's class names, kept verbatim. updateSelectionAction() finds the
+     message a selection sits in with closest('.msg-assistant'), so these are
+     not private to this stylesheet. -->
+<div class="msg-row"
+     [class.msg-user]="message.role === 'user'"
+     [class.msg-assistant]="message.role === 'assistant'"
+     [class.msg-error]="message.role === 'error'"
+     [class.msg-has-avatar]="!!avatar">
+
+  <!-- No crossorigin="anonymous" here.
+       It was harmless while every avatar arrived as a data: URI, where the
+       attribute does nothing. Avatars are real storage URLs now, and on a URL
+       that attribute forces a CORS request — which a public Cloud Storage
+       object does not answer unless the bucket carries a CORS policy, so it
+       would have failed every avatar. Nothing reads these pixels back (no
+       canvas), which is the only thing the attribute is for.
+
+       (error) hides the circle rather than leaving the browser's broken-image
+       glyph inside it: a missing avatar should look like no avatar. The header
+       logo has done this all along; this one had no handler at all. -->
+  <div class="msg-avatar"
+       *ngIf="avatar as a"
+       [hidden]="avatarFailed"
+       [class.msg-avatar-user]="message.role === 'user'"
+       [style.background]="avatarBgFor(message.role) || ''">
+    <img [src]="a"
+         alt=""
+         class="msg-avatar-img"
+         referrerpolicy="no-referrer"
+         decoding="async"
+         (error)="avatarFailed = true" />
+  </div>
+
+  <div class="msg-bubble">
+
+    <div class="msg-toolbar" *ngIf="toolbarVisible">
+      <button
+        type="button"
+        class="copy-btn"
+        (click)="onCopy()"
+        [attr.title]="(copied ? t('copied') : t('copy')) || (copied ? 'Copied' : 'Copy')"
+        [attr.aria-label]="(copied ? t('copied') : t('copy')) || (copied ? 'Copied' : 'Copy')"
+      >
+        <ng-container *ngIf="copied; else copyIcon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </ng-container>
+
+        <ng-template #copyIcon>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="3" width="11" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="4" y="7" width="11" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </ng-template>
+      </button>
+    </div>
+
+    <div class="msg-header">
+      <span class="msg-label">{{ labelFor(message) }}</span>
+
+      <!-- "Leif → Live agent": who sent it, and where it went.
+           The arrow is what turns two labels sitting next to each other into
+           one statement — without it the row read as "Leif Live agent", which
+           is a name nobody has.
+
+           Inside the *ngIf, not before it: the arrow means "to", so it must not
+           survive the thing it points at. sentViaLabel() is already empty
+           unless a live-agent integration is configured, so on most widgets
+           neither ever appears. -->
+      <ng-container *ngIf="sentViaLabel(message) as via">
+        <svg class="msg-via-arrow" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 12h15M13 6l6 6-6 6"
+                fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="msg-send-status">{{ via }}</span>
+      </ng-container>
+
+      <!-- In flight. A spinner rather than the word "Sending…": it reads the
+           same in every language, it takes the width of a character instead of
+           a phrase on a row already carrying a name and a destination, and
+           motion is what actually says "still happening" — a static word does
+           not distinguish itself from the timestamp that replaces it.
+
+           aria-label carries the meaning for a screen reader, which is the one
+           audience a spinning circle tells nothing. -->
+      <svg class="msg-spinner"
+           *ngIf="isSendingMessage(message)"
+           viewBox="0 0 24 24"
+           role="img"
+           [attr.aria-label]="t('sendingFlag') || 'Sending'">
+        <circle cx="12" cy="12" r="9"
+                fill="none" stroke="currentColor" stroke-width="2.6"
+                stroke-linecap="round"
+                stroke-dasharray="14 42"/>
+      </svg>
+
+      <span class="msg-send-status" *ngIf="sendStatusLabel(message) as sendStatus">{{ sendStatus }}</span>
+      <span class="msg-send-status" *ngIf="receivedLabel(message) as receivedStatus">{{ receivedStatus }}</span>
+    </div>
+
+    <bb-message-body [message]="message" [render]="render" [t]="t"></bb-message-body>
+
+    <!-- The backend asked who the visitor is instead of answering — the form
+         takes the place of the reply text, which is why there is none. -->
+    <app-contact-form *ngIf="message.contactRequest"
+                      [message]="message"
+                      [t]="t"
+                      [remembered]="remembered"
+                      (submitted)="contactSubmitted.emit($event)"
+                      (skipped)="contactSkipped.emit($event)"
+                      (cancelled)="contactCancelled.emit($event)"
+                      (cleared)="contactCleared.emit($event)"></app-contact-form>
+
+    <!-- The embed carried a hand-written copy of this component's markup,
+         identical button for button, with its own duplicate styles. One row
+         now, for both surfaces. -->
+    <app-feedback
+      *ngIf="feedbackVisible"
+      [message]="message"
+      [t]="t"
+      (feedback)="onFeedback($event)">
+    </app-feedback>
+  </div>
+</div>

@@ -1,0 +1,37 @@
+<!-- A segmented control rather than two tinted words: the raised "thumb" on the
+     selected side is what makes the current mode readable at a glance, and
+     makes it obvious the other side is a thing you can press. Icons carry the
+     distinction before the text is read — a magnifier for search, a person for
+     a human. -->
+<div class="mode-ruler" role="tablist" [class.disabled]="disabled">
+  <button
+    type="button"
+    role="tab"
+    class="mode-tab"
+    [class.active]="mode === 'model'"
+    [attr.aria-selected]="mode === 'model'"
+    [disabled]="disabled"
+    (click)="select('model')">
+    <svg class="mode-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <circle cx="7" cy="7" r="4.25" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M10.2 10.2 L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <span class="mode-text">{{ aiLabel }}</span>
+  </button>
+
+  <button
+    type="button"
+    role="tab"
+    class="mode-tab"
+    [class.active]="mode === 'chat'"
+    [attr.aria-selected]="mode === 'chat'"
+    [disabled]="disabled"
+    (click)="select('chat')">
+    <svg class="mode-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <circle cx="8" cy="5.25" r="2.75" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M2.75 13.5c0-2.9 2.35-4.5 5.25-4.5s5.25 1.6 5.25 4.5"
+            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <span class="mode-text">{{ agentLabel }}</span>
+  </button>
+</div>

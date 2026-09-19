@@ -1,12 +1,36 @@
 <!-- src/app/widget/chat/chat.component.html -->
 
+<!-- No more "=== null means transparent": the backend sends every
+     unconfigured widgetParams field as null rather than omitting it, so
+     that check made "not set" indistinguishable from a deliberate
+     transparency request nothing in the admin UI can even produce.
+
+     --bb-msg-back is the colour the bubbles and the composer's input frame are
+     painted with — one fill for the assistant's messages, the visitor's, and
+     the box they are written in. --bb-bubble-bg carries the same value for the
+     surfaces named after bubbles but no longer used by them: the suggestion
+     chips, the language picker and the emoji panel. Null when nothing is
+     configured, so chat.component.css's own :host values still decide.
+
+     inputBg last in each chain: the admin's old "Chat UI" colour for the box
+     the visitor writes in, which is this same surface. It is the only saved
+     value an existing app can have for it, since messageColor has no setting.
+     Kept in step with ChatCoreComponent.effectiveMessageColor, which is what
+     the caret, the input icons and the send mark are derived from — the painted
+     colour and the derived ones have to come from the same chain. -->
 <div class="chat"
-     [style.--bb-back]="appOrWp?.backColor === null ? 'transparent' : (appOrWp?.backColor ?? '#fff')"
-     [style.--bb-header-bg]="appOrWp?.headerBg === null ? 'transparent' : null"
-     [style.--bb-input-bg]="appOrWp?.inputBg === null ? 'transparent' : (appOrWp?.inputBg ?? null)"
-     [style.--bb-input-border]="appOrWp?.inputBorder === null ? 'transparent' : (appOrWp?.inputBorder ?? null)"
-     [style.--bb-send-bg]="appOrWp?.sendBg === null ? 'transparent' : (appOrWp?.sendBg ?? null)"
-     [style.--bb-send-fg]="appOrWp?.sendFg === null ? 'transparent' : (appOrWp?.sendFg ?? null)"
+     [style.--bb-back]="backColor || appOrWp?.backColor || DEFAULT_THEME.backColor"
+     [style.--bb-surface-text]="surfaceText"
+     [style.--bb-input-chrome]="inputChromeText"
+
+     [style.color]="fontColor || appOrWp?.fontColor || null"
+     [style.--bb-text]="fontColor || appOrWp?.fontColor || null"
+     [style.--bb-msg-back]="messageColor || appOrWp?.messageColor || appOrWp?.inputBg || null"
+     [style.--bb-bubble-bg]="messageColor || appOrWp?.messageColor || appOrWp?.inputBg || null"
+
+     [style.--bb-send-bg]="appOrWp?.sendBg || null"
+     [style.--bb-send-fg]="appOrWp?.sendFg || null"
+     [class.bb-frame-dark]="inputFrameIsDark"
      [class.empty]="isEmpty"
      [class.compact]="mode !== 'full'"
      [class.full]="mode === 'full'"
@@ -22,11 +46,15 @@
     [headerIsRound]="headerIsRound"
     [headerLogoBg]="headerLogoBg"
     [headerLogoInitialLocal]="headerLogoInitialLocal"
-    [headerBg]="appOrWp?.headerBg"
+    [headerBg]="headerBg || appOrWp?.headerBg"
+    [headerText]="headerText || appOrWp?.headerText"
     [t]="t.bind(this)"
+    [currentLang]="lang"
+    [langLocked]="langLocked"
     (toggleFullscreen)="onToggleFullscreenClick($event)"
     (close)="onCloseClick()"
-    (newChat)="newConversation()"
+    (newChat)="requestNewConversation()"
+    (langPicked)="chooseLang($event)"
     (logoError)="onLogoError()">
   </app-chat-header>
 
@@ -35,45 +63,70 @@
       {{ welcomeText }}
     </div>
 
+    <!-- composerEl/historyEl are gone: they existed only so the component could
+         measure the gap between itself and the composer and trim the list to
+         fit. The chips scroll with the welcome text above them now. -->
     <app-chat-suggestions
       [suggestions]="suggestions"
       [showSuggestions]="!!showSuggestions"
       [isEmpty]="isEmpty"
       [isComposing]="isComposing"
-      [composerEl]="composerRef?.nativeElement"
-      [historyEl]="historyRef"
       [t]="t.bind(this)"
       (applySuggestion)="applySuggestionText($event)">
     </app-chat-suggestions>
 
 
-    <app-chat-message
+    <app-message
       #msgItem
       *ngFor="let m of messages$(); trackBy: trackById; let i = index"
       [message]="m"
       [index]="i"
       [render]="render"
-      [feedbackEnabled]="feedbackEnabled"
       [copiedIndex]="copiedIndex"
+      [remembered]="rememberedContact"
       [t]="t.bind(this)"
+      [feedbackVisible]="feedbackVisibleFor(m)"
       [labelFor]="labelFor.bind(this)"
+      [sendStatusLabel]="sendStatusLabel.bind(this)"
+      [sentViaLabel]="sentViaLabel.bind(this)"
+      [receivedLabel]="receivedLabel.bind(this)"
+      [isSendingMessage]="isSendingMessage.bind(this)"
+      [showAvatar]="true"
       [avatarSrc]="avatarSrc.bind(this)"
       [avatarBgFor]="avatarBgFor.bind(this)"
       (copy)="copyText($event.content, $event.index)"
-      (feedback)="onAssistantFeedback($event.message, $event.type)">
-    </app-chat-message>
+      (feedback)="onAssistantFeedback($event.message, $event.type)"
+      (contactSubmitted)="onContactSubmitted($event.message, $event.values)"
+      (contactSkipped)="onContactSkipped($event.message)"
+      (contactCancelled)="onContactCancelled($event.message)"
+      (contactCleared)="onContactCleared($event.message)">
+    </app-message>
   </div>
 
-  <app-chat-composer
+  <app-composer
     [(userMessage)]="userMessage"
     [isSending]="isSending"
     [sendIconReady]="sendIconReady"
-    [appOrWp]="appOrWp"
     [t]="t.bind(this)"
+    [placeholder]="isEmpty ? (welcomeText || '') : ''"
+    [chatModeVisible]="chatModeSelectorVisible"
+    [chatMode]="chatMode"
+    [chatModeAiLabel]="t('chatModeAi') || 'AI search'"
+    [chatModeAgentLabel]="agentLabel"
+    [chatLimits]="chatLimits"
+    [attachedCount]="pendingAttachments.length"
+    [isNeutral]="isNeutral"
+    [isEmpty]="isEmpty"
+    [contactEditVisible]="contactEditVisible"
     (keydownEvent)="onComposerKeydown($event)"
     (inputEvent)="onTextareaInput()"
-    (sendMessage)="send()">
-  </app-chat-composer>
+    (sendMessage)="send()"
+    (chatModeChange)="onChatModeSelected($event)"
+    (attachmentPicked)="onAttachmentPicked($event)"
+    (attachmentsPasted)="sendPastedAttachments()"
+    (helpRequested)="askForHelp()"
+    (contactEditRequested)="openContactEditor()">
+  </app-composer>
 
   <div *ngIf="selectionActionVisible"
        class="selection-action"
@@ -84,6 +137,32 @@
             (click)="useSelectedAssistantText()">
       {{ t('useText') || 'Use text' }}
     </button>
+  </div>
+
+  <!-- Ending a live chat is destructive in a way the visitor cannot see: the
+       agent's session is closed, so a reply they were part-way through typing
+       reaches nobody. Same modal pattern as the feedback dialog — absolute
+       within the panel, not fixed to the browser window. -->
+  <div *ngIf="newChatConfirmOpen" class="feedback-modal-backdrop">
+    <div class="feedback-modal" (click)="$event.stopPropagation()">
+      <div class="feedback-title">
+        {{ t('newChatConfirmTitle') || 'End this conversation?' }}
+      </div>
+
+      <div class="feedback-subtitle">
+        {{ t('newChatConfirmBody') || 'You are talking to a person right now. Starting a new chat ends that conversation and deletes it — anything they send after this will not reach you.' }}
+      </div>
+
+      <div class="feedback-actions">
+        <button type="button" (click)="confirmNewConversation()">
+          {{ t('newChatConfirmOk') || 'End and start new' }}
+        </button>
+
+        <button type="button" (click)="cancelNewConversation()">
+          {{ t('newChatConfirmCancel') || 'Keep chatting' }}
+        </button>
+      </div>
+    </div>
   </div>
 
   <div *ngIf="feedbackModalOpen" class="feedback-modal-backdrop">

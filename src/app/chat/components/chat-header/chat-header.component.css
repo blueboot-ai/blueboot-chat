@@ -10,12 +10,22 @@
   flex: 0 0 auto;
 
   display: grid;
-  grid-template-columns: 36px 1fr auto;
+  /* Four tracks: expand, language, title, actions.
+     The language column is `auto` rather than a fixed width like the expand
+     button's — the trigger sizes itself in em against the widget's type scale,
+     so pinning it to 36px would clip it wherever a site sets a larger font. */
+  grid-template-columns: 36px auto 1fr auto;
   align-items: center;
   gap: 10px;
 
   height: 52px;
-  padding: 8px 12px;
+
+  /* The extra left padding is the launcher's resize grip asking for room.
+     Zero by default, so the header is unchanged everywhere the panel has no
+     grip — the embed, and the chat rendered directly on a page. The launcher
+     sets --bb-header-pad-left on <blue-search>, and custom properties cross
+     the shadow boundary, so the panel does not need to know why. */
+  padding: 8px 12px 8px calc(12px + var(--bb-header-pad-left, 0px));
 
   background: var(--bb-header-bg);
   color: var(--bb-header-text);
@@ -24,11 +34,9 @@
   box-shadow: 0 10px 24px rgba(2, 6, 23, .04);
 }
 
-.widget-header.is-full {
-  height: 60px;
-  padding-inline: 16px;
-  box-shadow: 0 16px 42px rgba(2, 6, 23, .06);
-}
+/* .widget-header.is-full went with the rest of the [mode="full"] styling — see
+   the note in chat.component.css. The class came from [class.is-full]="mode ===
+   'full'", bound to a field nothing ever assigns, so it was never applied. */
 
 .widget-header__title {
   display: flex;
@@ -45,6 +53,10 @@
   text-overflow: ellipsis;
 }
 
+/* One of the header's elements, on the same rhythm as the buttons beside it:
+ * their hit boxes are 28px around an 18px glyph, so the mark gets the same box
+ * and the same optical weight rather than its own. Padding keeps it off the
+ * chip's edge the way the glyphs sit inside their buttons. */
 .header-chip {
   display: inline-flex;
   align-items: center;
@@ -52,6 +64,8 @@
 
   width: 28px;
   height: 28px;
+  padding: 3px;
+  box-sizing: border-box;
 
   border-radius: 8px;
   overflow: hidden;
@@ -62,19 +76,27 @@
   border-radius: 9999px;
 }
 
+/* Sized to fit the chip, never to fill it.
+ *
+ * This was `height: 20px; width: auto`, which is two problems at once. A wide
+ * wordmark became 20px tall and whatever width that implied — often well past
+ * the chip's 28px — and the chip's overflow:hidden then cropped it to a slice
+ * of its middle. A small favicon went the other way: 16 native pixels stretched
+ * to 20 is a blur, and no amount of image-rendering fixes an upscale.
+ *
+ * max-* with auto dimensions does both: anything larger than the chip is scaled
+ * down whole, anything smaller is left at its own size and stays sharp.
+ */
 .brandmark {
   flex: 0 0 auto;
-  height: 20px;
+
+  max-width: 100%;
+  max-height: 100%;
   width: auto;
+  height: auto;
+
   display: block;
   object-fit: contain;
-  image-rendering: -webkit-optimize-contrast;
-}
-
-.header-initial {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--bb-text);
 }
 
 .title-text {
@@ -95,7 +117,14 @@
   border: 0;
   background: transparent;
   cursor: pointer;
-  color: var(--hdr-icon);
+  /* Inherit the header's own text colour (effectiveHeaderText, set inline on
+     <header> above) rather than a fixed var(--hdr-icon) — that used to be a
+     static default tuned for a light header, so light icons picked for a
+     navy header vanished the moment an app set its own light headerBg (or
+     vice versa). Inheriting always matches whatever the header's actual
+     background needs. */
+  color: inherit;
+  opacity: .85;
 
   width: 32px;
   height: 32px;
@@ -104,7 +133,7 @@
   display: grid;
   place-items: center;
 
-  transition: background .15s ease, color .15s ease, transform .06s ease;
+  transition: background .15s ease, opacity .15s ease, transform .06s ease;
 }
 
 .widget-header__max {
@@ -116,8 +145,8 @@
 .widget-header__max:hover,
 .widget-header__new:hover,
 .widget-header__close:hover {
-  color: var(--hdr-icon-hover);
-  background: rgba(17, 24, 39, .06);
+  opacity: 1;
+  background: rgba(127, 127, 127, .16);
 }
 
 .widget-header__max:active,
@@ -147,16 +176,19 @@
 
 @media (max-width: 600px) {
   .widget-header {
-    grid-template-columns: 32px 1fr 32px;
+    grid-template-columns: 32px auto 1fr 32px;
     height: 48px;
     padding: 6px 10px;
   }
 
-  .brandmark {
-    height: 18px;
+  /* The chip shrinks with the header; the mark follows it, because it is sized
+     off the chip rather than off a fixed height of its own. */
+  .header-chip {
+    width: 24px;
+    height: 24px;
   }
 
   .title-text {
-    font-size: 14px;
+    font-size: var(--bb-font-size);
   }
 }

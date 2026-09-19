@@ -1,0 +1,39 @@
+<!-- Trigger. Icon-only and transparent, same shape as the composer's send
+     button, so the two read as one row of controls rather than a control and
+     an ornament. -->
+<button type="button"
+        class="ep-trigger"
+        [class.open]="open"
+        [disabled]="disabled"
+        [attr.aria-expanded]="open"
+        [attr.aria-label]="t('emojiPicker') || 'Insert emoji'"
+        [attr.title]="t('emojiPicker') || 'Insert emoji'"
+        (click)="toggle()">
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="1.8">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M8.5 14.5a4.5 4.5 0 0 0 7 0" stroke-linecap="round"/>
+    <circle cx="9" cy="9.5" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="15" cy="9.5" r="1" fill="currentColor" stroke="none"/>
+  </svg>
+</button>
+
+<!-- Opens upward: the composer sits at the bottom of the widget, so a panel
+     dropping down would fall outside it. -->
+<div class="ep-panel" *ngIf="open" role="dialog"
+     [attr.aria-label]="t('emojiPicker') || 'Insert emoji'">
+  <div class="ep-scroll">
+    <ng-container *ngFor="let group of groups; trackBy: trackByKey">
+      <div class="ep-group-label">{{ groupLabel(group.key) }}</div>
+
+      <div class="ep-grid">
+        <button *ngFor="let e of group.emojis; trackBy: trackByName"
+                type="button"
+                class="ep-emoji"
+                [attr.title]="':' + e.name + ':'"
+                [attr.aria-label]="e.name"
+                (click)="choose(e.char)">{{ e.char }}</button>
+      </div>
+    </ng-container>
+  </div>
+</div>

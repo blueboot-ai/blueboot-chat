@@ -14,6 +14,7 @@ import { provideHttpClient } from '@angular/common/http';
 
 // ✅ Always register the custom elements (for WP AND for dev shell)
 import './elements';
+import { ChatComponent } from './app/chat/chat.component';
 
 /* ------------ Root shell (dev only) ------------ */
 @Component({
@@ -41,7 +42,7 @@ class WidgetRoute implements AfterViewInit {
   @ViewChild('host', { static: true }) hostRef!: ElementRef<HTMLElement>;
   private q = inject(ActivatedRoute).snapshot.queryParamMap;
 
-  appid = this.q.get('appid') || 'hellofresh';
+  appid = this.q.get('appid') || 'bluesearch';
   userid = this.q.get('userid') || 'anon';
   lang = this.q.get('lang') || 'no';
   welcometext = this.q.get('welcometext') || '';
@@ -76,7 +77,7 @@ class LauncherRoute implements AfterViewInit {
   @ViewChild('host', { static: true }) hostRef!: ElementRef<HTMLElement>;
   private q = inject(ActivatedRoute).snapshot.queryParamMap;
 
-  appid = this.q.get('appid') || 'hellofresh';
+  appid = this.q.get('appid') || 'bluesearch';
   userid = this.q.get('userid') || 'anon';
   lang = this.q.get('lang') || 'no';
 
@@ -89,6 +90,36 @@ class LauncherRoute implements AfterViewInit {
   }
 }
 
+/* ------------ Chat panel route (dev shell) — the bare `blue-search` panel,
+   full page, with no embed bubble or launcher chrome around it. ------------ */
+@Component({
+  standalone: true,
+  imports: [CommonModule, ChatComponent],
+  template: `
+    <style>
+      .panel-host { display:block; height: 100vh; }
+    </style>
+    <div class="panel-host">
+      <blue-search
+        [appid]="appid"
+        [gptid]="gptid"
+        [envurl]="envurl"
+        [assistantid]="assistantid"
+        [defaultlang]="lang"
+      ></blue-search>
+    </div>
+  `,
+})
+class ChatPanelRoute {
+  private q = inject(ActivatedRoute).snapshot.queryParamMap;
+
+  appid = this.q.get('appid') || 'bluesearch';
+  gptid = this.q.get('gptid') || undefined;
+  envurl = this.q.get('envurl') || undefined;
+  assistantid = this.q.get('assistantid') || undefined;
+  lang = this.q.get('lang') || 'no';
+}
+
 /* ------------ Routes (dev shell) ------------ */
 const routes: Routes = [
   // Default route = widget
@@ -97,6 +128,8 @@ const routes: Routes = [
   { path: 'widget', redirectTo: '', pathMatch: 'full' },
   // /launcher → launcher test page
   { path: 'launcher', component: LauncherRoute },
+  // /panel → the bare chat panel, full page, not embedded
+  { path: 'panel', component: ChatPanelRoute },
 ];
 
 /* ------------ Decide: dev shell or WP mode? ------------ */
