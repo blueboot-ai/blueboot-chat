@@ -2,11 +2,11 @@
    FIXES:
    - Version is read from blue-search.php "Version:" header (NOT package.json)
    - ZIP name is blue-search-<version>.zip
-   - Delete and exclude *.bak files (blue-search.php.bak etc.)
-   - Copy lib/ folder to CDN targets (to include lib/plugin-update-checker/blue-search.json)
+   - Delete and exclude *.bak files, .DS_Store, and Thumbs.db from the zip
    - Prefer copying images from build output: <buildDir>/assets/img, fallback src/assets/img
-   - ✅ NEW FIX: Update Plugin Update Checker manifest blue-search.json with the new VERSION + download_url
-   - ✅ NEW FIX: Publish stable zip name to /blue-search/latest/blue-search.zip (clients + PUC)
+   - Publish stable zip name to /blue-search/latest/blue-search.zip (CDN clients only;
+     no self-update manifest is shipped, since WordPress.org plugins must rely solely on
+     the WordPress.org update system)
 */
 
 const fs = require("fs");
@@ -25,17 +25,6 @@ const pluginAssets = path.join(pluginRoot, "assets");
 const pluginImg = path.join(pluginAssets, "img");
 const pluginAssetsSubAssets = path.join(pluginAssets, "assets");
 const pluginZipDir = path.join(projectRoot, "widget-package");
-
-// ✅ lib folder source
-const pluginLib = path.join(pluginRoot, "lib");
-
-// ✅ Plugin Update Checker manifest path (inside plugin)
-const pucManifestPath = path.join(
-  pluginRoot,
-  "lib",
-  "plugin-update-checker",
-  "blue-search.json"
-);
 
 // Firebase CDN structure (inside repo)
 const cdnDeployRoot = path.join(projectRoot, "widget-package", "deploy", "cdn");
@@ -104,36 +93,6 @@ async function deleteBakFilesUnder(dir) {
       console.log("🧹 Removed backup file:", full);
     }
   }
-}
-
-/**
- * ✅ Update Plugin Update Checker manifest (blue-search.json)
- * - Sets json.version to VERSION
- * - Sets json.download_url to the stable latest zip URL on your CDN
- */
-async function updatePucManifest(VERSION) {
-  if (!(await fileExists(pucManifestPath))) {
-    console.warn("⚠️ PUC manifest not found, skipping:", pucManifestPath);
-    return;
-  }
-
-  let json;
-  try {
-    const raw = await fsp.readFile(pucManifestPath, "utf8");
-    json = JSON.parse(raw);
-  } catch (e) {
-    throw new Error(`Failed to read/parse PUC manifest JSON at ${pucManifestPath}: ${e.message}`);
-  }
-
-  const downloadUrl = `https://blueboot-cdn.web.app/blue-search/latest/blue-search.zip`;
-
-  json.version = VERSION;
-  json.download_url = downloadUrl;
-
-  await fsp.writeFile(pucManifestPath, JSON.stringify(json, null, 2) + "\n", "utf8");
-  console.log("✅ Updated PUC manifest:", pucManifestPath);
-  console.log("   - version:", VERSION);
-  console.log("   - download_url:", downloadUrl);
 }
 
 /**
@@ -230,7 +189,7 @@ async function zipBlueSearchFolder(pluginZip) {
 
     // ✅ Include folder as "blue-search" root, but ignore .bak files
     archive.directory(pluginRoot, "blue-search", {
-      ignore: ["**/*.bak"],
+      ignore: ["**/*.bak", "**/.DS_Store", "**/Thumbs.db"],
     });
 
     archive.finalize();
@@ -270,11 +229,6 @@ async function buildCdnTarget(
   await copyFile(path.join(pluginRoot, "blue-search.php"), targetPhp);
   await copyFile(path.join(pluginRoot, "readme.txt"), targetReadme);
 
-  // ✅ Copy lib folder into CDN targetRoot
-  const targetLib = path.join(targetRoot, "lib");
-  console.log("=== Copy lib ->", targetLib);
-  await copyDirRecursive(pluginLib, targetLib);
-
   // ✅ Copy zip
   console.log("=== Copy zip ->", targetZip);
   await copyFile(pluginZip, targetZip);
@@ -290,9 +244,6 @@ async function buildCdnTarget(
   // 1) Read version from blue-search.php
   const VERSION = await readVersionFromPhpHeader();
   console.log("=== Release version (from blue-search.php):", VERSION);
-
-  // ✅ Update PUC manifest to match VERSION (so WP can see updates)
-  await updatePucManifest(VERSION);
 
   const pluginZip = path.join(pluginZipDir, `blue-search-${VERSION}.zip`);
 

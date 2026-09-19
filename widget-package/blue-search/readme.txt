@@ -4,7 +4,7 @@ Tags: ai search, chatbot, customer support, website search, ecommerce
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.26
+Stable tag: 1.0.31
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -102,6 +102,12 @@ Yes. If your BlueSearch application has been configured with your WooCommerce ca
 3. Plugin settings page.
 
 == Changelog ==
+
+= 1.0.31 =
+
+* Removed the bundled self-update library (plugin-update-checker) and its manifest from the packaged plugin. WordPress.org plugins must rely solely on the WordPress.org update system; this release no longer ships any alternate update channel.
+* Synced the Stable tag with the plugin's Version header.
+* Compressed oversized launcher images to reduce plugin package size.
 
 = 1.0.26 =
 
