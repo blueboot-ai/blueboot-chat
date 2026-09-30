@@ -18,7 +18,23 @@ try {
 
   // ✅ IMPORTANT: Firebase PROJECT ID (from console URL)
   // Project: blueboot-prod
-  // Site:    blueboot-cdn (already in firebase.json)
+  //
+  // Site:    blueboot-wporg-cdn (in firebase.json)
+  //
+  // -- OLD site, DO NOT deploy this repo's build there --
+  // Site:    blueboot-cdn  (https://blueboot-cdn.web.app)
+  // This is the CDN that DEV/PROD's blue-search.php still polls for
+  // auto-updates (the self-update block + plugin-update-checker library,
+  // deliberately NOT present in this public/WordPress.org repo's build).
+  // Deploying this repo's clean build there would 404 the manifest at
+  // /blue-search/latest/lib/plugin-update-checker/blue-search.json and
+  // silently break update checks for every already-installed client that
+  // still has the old self-updater. Left here as a comment (not deleted)
+  // in case the DEV/PROD side of the CDN deploy is ever needed from this
+  // script again -- but keep it pointed at its OWN site, never this one.
+  //
+  // One-time setup before this script's target site works:
+  //   npx firebase-tools hosting:sites:create blueboot-wporg-cdn --project blueboot-prod
   const FIREBASE_PROJECT_ID =
     process.env.FIREBASE_PROJECT_ID || "blueboot-prod";
 

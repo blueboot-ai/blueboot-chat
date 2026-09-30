@@ -20,7 +20,7 @@
 // service URLs (apiUrl, paymentApiUrl, notifyApiUrl, …) that nothing in
 // widget2 reads — left out here on purpose, same trimming rule as
 // widget2/shared.
-const PUBLIC_API_URL = 'https://bluebootapi-cv5uqudw3q-uc.a.run.app';
+const PUBLIC_API_URL = 'https://bluebootapi-nouhm5zjqa-uc.a.run.app';
 
 export const environment = {
   publicApiUrl: PUBLIC_API_URL,

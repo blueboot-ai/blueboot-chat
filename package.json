@@ -1,6 +1,6 @@
 {
   "name": "blueboot-chat",
-  "version": "1.0.31",
+  "version": "1.0.32",
   "private": true,
   "engines": {
     "node": ">=20 <23"

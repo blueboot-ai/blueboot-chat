@@ -1,3 +1,22 @@
+# Blue Search — WordPress Plugin Source
+
+This repository is the public source for the **Blue Search** WordPress plugin (listed on WordPress.org). It contains:
+
+- `src/app/widget2` — the Angular chat widget source. This is compiled into the plugin's bundled `assets/main.js` and `assets/polyfills.js`.
+- `widget-package/blue-search` — the WordPress plugin itself (PHP, shortcodes, `readme.txt`), ready to be zipped and installed on a WordPress site.
+- `tools/` — build scripts, including `deploy-wp.js`, which builds the widget and assembles the plugin folder.
+
+## Building the plugin
+
+```bash
+npm install
+npm run build:wp
+```
+
+This builds the Angular widget and copies the compiled assets into `widget-package/blue-search/assets`, so the plugin folder always reflects the widget source in this repo.
+
+---
+
 # WpNgWidget
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.2.0.

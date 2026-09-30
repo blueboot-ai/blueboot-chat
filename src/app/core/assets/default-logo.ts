@@ -10,8 +10,8 @@
 // at all on a site that does not serve /assets.
 //
 // SOURCE FILES (regenerate by base64-encoding these; they are the originals):
-//   dark  -> src/assets/img/Bluesearch_forstørrelsesglass_gråblå.png   (12,996 B)
-//   light -> src/assets/img/Bluesearch_forstørrelsesglass_hvit.png     ( 9,127 B)
+//   dark  -> src/assets/img/Bluesearch_magnifying-glass_grayblue.png   (12,996 B)
+//   light -> src/assets/img/Bluesearch_magnifying-glass_white.png     ( 9,127 B)
 //
 // The dark mark serves double duty: it is both the default logo/launcher icon
 // and the dark-theme send icon, so it is stored once.
@@ -27,7 +27,7 @@ import { backgroundLuminance } from '../theme/header-contrast';
  * The grey-blue mark. Default logo, launcher button icon, and the send icon on
  * light surfaces (see sendIconFor).
  *
- * From src/assets/img/Bluesearch_forstørrelsesglass_gråblå.png — ~16.9 KB here.
+ * From src/assets/img/Bluesearch_magnifying-glass_grayblue.png — ~16.9 KB here.
  */
 export const DEFAULT_LOGO_DATA_URI =
   'data:image/png;base64,' +
@@ -209,7 +209,7 @@ export const DEFAULT_LOGO_DATA_URI =
 /**
  * The white mark, for dark surfaces (see sendIconFor).
  *
- * From src/assets/img/Bluesearch_forstørrelsesglass_hvit.png — ~11.9 KB here.
+ * From src/assets/img/Bluesearch_magnifying-glass_white.png — ~11.9 KB here.
  */
 export const DEFAULT_LOGO_LIGHT_DATA_URI =
   'data:image/png;base64,' +

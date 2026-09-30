@@ -1,11 +1,14 @@
 <?php
 /**
- * Plugin Name: Blue Search
- * Plugin URI:  https://www.blueboot.ai
+ * Plugin Name: BlueSearch AI Search and Chatbot
+ * Plugin URI:  https://blueboot.ai/
  * Description: Embeds the BlueSearch Angular chat as a floating launcher or a full-width embed.
- * Version:     1.0.32
+ * Version:     1.0.31
+ * Requires at least: 6.0
+ * Requires PHP: 7.4
  * Author:      BlueBoot
- * Text Domain: blue-search
+ * Author URI:  https://blueboot.ai/
+ * Text Domain: bluesearch
  * License:     GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
@@ -38,7 +41,7 @@ function bsrch_register_assets() {
             'blue-search-styles',
             false,
             [],
-            '1.0.32'
+            '1.0.30'
         );
     }
 
@@ -338,7 +341,7 @@ function bsrch_render_settings_page() {
   ], $atts, 'blue-search-launcher');
 
   $logo_url  = $a['logosrc']  !== '' ? bsrch_normalize_asset_url($a['logosrc'])  : '';
-  $robot_url = $a['robotsrc'] !== '' ? bsrch_normalize_asset_url($a['robotsrc']) : trailingslashit(plugin_dir_url(**FILE**)) . 'assets/img/robot.png';
+  $robot_url = $a['robotsrc'] !== '' ? bsrch_normalize_asset_url($a['robotsrc']) : trailingslashit(plugin_dir_url(__FILE__)) . 'assets/img/robot.png';
 
   $attrs = bsrch_build_attrs([
   'title'       => $a['title'],
@@ -416,3 +419,4 @@ $shortcodes[] = 'blue-search-launcher';
 $shortcodes[] = 'blue-search-embed';
 return $shortcodes;
 });
+

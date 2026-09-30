@@ -219,6 +219,9 @@ async function buildCdnTarget(
   console.log("=== Copy build ->", targetAssets);
   await copyDirRecursive(buildDir, targetAssets);
 
+  // Same stray-index.html cleanup as the WP plugin assets copy above.
+  await fsp.rm(path.join(targetAssets, "index.html"), { force: true });
+
   // Remove nested assets/assets if it appears
   await fsp.rm(path.join(targetAssets, "assets"), { recursive: true, force: true });
 
@@ -235,6 +238,63 @@ async function buildCdnTarget(
 
   // ✅ Safety: remove any .bak that could have been copied by accident
   await deleteBakFilesUnder(targetRoot);
+}
+
+/**
+ * Safety net for the exact bug that shipped the DEV backend URL
+ * (bluebootapi-cv5uqudw3q-uc.a.run.app, project blueboot-ea7b6) in every
+ * production release from 1.0.25 through 1.0.31: src/app/environment/
+ * environment.ts carries a single hardcoded PUBLIC_API_URL (see that file's
+ * own comments for why it isn't part of Angular's normal fileReplacements
+ * swap), and nothing ever checked it actually matched PROD before packaging
+ * and deploying. It can drift again the same silent way — someone testing
+ * locally flips it to the DEV URL and forgets to flip it back before
+ * running `npm run release`.
+ *
+ * This checks the ACTUAL COMPILED OUTPUT (buildDir), not just the source
+ * file, so it catches the bug regardless of what caused it — a stale source
+ * file, a bad merge, a future refactor that reintroduces a second copy of
+ * the URL somewhere else in the app. If the DEV host shows up anywhere in
+ * what's about to be zipped and deployed, this throws and packaging stops
+ * before anything is written.
+ */
+const DEV_BACKEND_HOST = "bluebootapi-cv5uqudw3q-uc.a.run.app";
+const PROD_BACKEND_HOST = "bluebootapi-nouhm5zjqa-uc.a.run.app";
+
+async function assertProdBackendUrl(buildDir) {
+  console.log("=== Verifying compiled output uses the PROD backend URL...");
+  const jsFiles = (await fsp.readdir(buildDir))
+    .filter((name) => name.endsWith(".js"));
+
+  let foundProd = false;
+
+  for (const name of jsFiles) {
+    const content = await fsp.readFile(path.join(buildDir, name), "utf8");
+
+    if (content.includes(DEV_BACKEND_HOST)) {
+      throw new Error(
+        `\n\n🛑 RELEASE ABORTED: ${name} contains the DEV backend URL ` +
+        `(${DEV_BACKEND_HOST}).\n` +
+        `This is the exact bug that broke production for every release from ` +
+        `1.0.25 through 1.0.31 — see src/app/environment/environment.ts.\n` +
+        `Fix PUBLIC_API_URL there so it points at ${PROD_BACKEND_HOST}, then ` +
+        `re-run this script. Nothing was zipped or deployed.\n`
+      );
+    }
+
+    if (content.includes(PROD_BACKEND_HOST)) foundProd = true;
+  }
+
+  if (!foundProd) {
+    throw new Error(
+      `\n\n🛑 RELEASE ABORTED: none of the compiled JS in ${buildDir} ` +
+      `contains the expected PROD backend URL (${PROD_BACKEND_HOST}).\n` +
+      `That's unexpected either way — check src/app/environment/environment.ts ` +
+      `before releasing. Nothing was zipped or deployed.\n`
+    );
+  }
+
+  console.log("✅ Compiled output uses the PROD backend URL.");
 }
 
 (async () => {
@@ -269,6 +329,8 @@ async function buildCdnTarget(
   const buildDir = await pickBuildDir();
   console.log("=== Build dir:", buildDir);
 
+  await assertProdBackendUrl(buildDir);
+
   // 4) Update WP plugin assets so the zip is correct
   await ensureDir(pluginRoot);
   await ensureDir(pluginAssets);
@@ -276,6 +338,11 @@ async function buildCdnTarget(
 
   console.log("=== Copy build -> WP plugin assets");
   await copyDirRecursive(buildDir, pluginAssets);
+
+  // Angular emits an index.html in the build output; the plugin doesn't use it
+  // (WordPress renders its own page), so drop it to avoid shipping a stray,
+  // directly-web-accessible file in the plugin zip.
+  await fsp.rm(path.join(pluginAssets, "index.html"), { force: true });
 
   // Remove nested assets/assets if it appears
   await fsp.rm(pluginAssetsSubAssets, { recursive: true, force: true });
