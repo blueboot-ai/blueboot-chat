@@ -1,5 +1,5 @@
-=== Blue Search ===
-Contributors: moeznejah
+=== BlueSearch ===
+Contributors: blueboot
 Tags: chat, embed, launcher, angular
 Requires at least: 6.0
 Tested up to: 7.1
@@ -8,11 +8,11 @@ Stable tag: 1.0.34
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Embeds the Blue Search AI chat widget in five layouts via shortcodes: chat button, search box, icon, panel, or docked panel.
+Embeds the BlueSearch AI chat widget in five layouts via shortcodes: chat button, search box, icon, panel, or docked panel.
 
 == Description ==
 
-Blue Search adds an AI-powered search and chat widget to your WordPress site, in five layouts:
+BlueSearch adds an AI-powered search and chat widget to your WordPress site, in five layouts:
 
 * `[blue-search-launcher]` – Chat button: a floating launcher button that opens the chat.
 * `[blue-search-embed]` – Search box: an inline, full-width embed.
@@ -22,7 +22,7 @@ Blue Search adds an AI-powered search and chat widget to your WordPress site, in
 
 You can also enable the launcher globally from **Settings → BlueSearch**.
 
-Blue Search can help you:
+BlueSearch can help you:
 
 * Answer visitor questions using your website content.
 * Help users find pages, products and services.
@@ -47,31 +47,36 @@ This plugin does not include any automatic update mechanism outside of the offic
 
 == External services ==
 
-This plugin connects the embedded chat widget (added via the `[blue-search-launcher]` and `[blue-search-embed]` shortcodes, or the global launcher) to Blue Search's own hosted API, provided by BlueBoot, so it can generate AI-assisted answers.
+This plugin relies on the BlueSearch service, provided by BlueBoot R&D AS (the author of this plugin), to answer visitors' questions. Without it the widget cannot work.
 
-What is sent: the App ID configured for the widget, the text a visitor types into the chat, and page/technical context needed to operate the widget are sent from the visitor's browser to BlueBoot's backend at https://blueboot.ai, so it can generate an AI-assisted response using retrieval-augmented search over the content the site owner has configured in their BlueBoot account. No API keys are accepted or rendered by this plugin, and no data is sent unless the widget is loaded on a page where the shortcode (or global launcher) is active.
+The widget runs in the visitor's browser and connects to the BlueSearch API at https://bluebootapi-nouhm5zjqa-uc.a.run.app (operated by BlueBoot R&D AS, hosted on Google Cloud Run). It connects only on pages where one of the plugin's shortcodes, or the global launcher, is present. Nothing is sent when the plugin is activated or configured, and nothing is sent from the WordPress admin.
 
-Site owners should update their own privacy policy to disclose their use of the Blue Search service.
+What is sent, and when:
 
-Service provider: BlueBoot
-Website: https://www.blueboot.ai
-Privacy Policy: https://blueboot.ai/bs/privacy-policy-bluesearch
-Terms of Service: https://blueboot.ai/bs/terms
+* When a page with the widget loads: the App ID set in the shortcode or settings, to load that assistant's configuration (name, colours, logo, welcome text, language). The assistant's logo and other images are loaded from the same API.
+* When a visitor sends a message: the text they typed, any file they choose to attach, the conversation ID, the language in use and the App ID, so the service can generate an answer from the content the site owner has configured in their BlueBoot account.
+* When a visitor rates an answer or fills in the contact form: the rating, comment or contact details they enter.
+* When a visitor starts a new conversation: a request to delete the files attached to the previous one.
+
+The visitor's browser also sends the usual technical information included with any web request, such as IP address and user agent.
+
+BlueSearch is a product of BlueBoot R&D AS, https://blueboot.ai
+
+* Terms of Service: https://blueboot.ai/bs/terms
+* Privacy Policy: https://blueboot.ai/bs/privacy-policy
+
+Site owners should mention their use of BlueSearch in their own privacy policy.
 
 == Assets & Downloads ==
 
-For advanced integrators who need direct access to the compiled widget assets (for example, embedding outside of WordPress), the underlying JavaScript and CSS are also published at:
-
-https://cdn.blueboot.ai/blue-search/latest/
-
-This location is for asset access only. To install or update this plugin on a WordPress site, always use the WordPress.org plugin directory.
+The compiled widget files are also published at https://blueboot.ai/assets/widget/latest/ for embedding outside WordPress. To install or update this plugin on a WordPress site, use the WordPress.org plugin directory.
 
 == Installation ==
 
 1. Upload the plugin ZIP through **Plugins → Add New → Upload Plugin**.
 2. Activate the plugin.
 3. Go to **Settings → BlueSearch**.
-4. Enter your Blue Search App ID.
+4. Enter your BlueSearch App ID.
 5. Enable the global launcher, or insert one of the following shortcodes:
 
 `[blue-search-launcher appid="your-app-id"]` (Chat button)
@@ -86,9 +91,9 @@ This location is for asset access only. To install or update this plugin on a Wo
 
 == Frequently Asked Questions ==
 
-= Do I need a Blue Search account? =
+= Do I need a BlueSearch account? =
 
-Yes. You need a Blue Search App ID provided by BlueBoot.
+Yes. You need a BlueSearch App ID from your BlueSearch account at https://blueboot.ai.
 
 = Does the plugin expose API keys? =
 
@@ -100,18 +105,19 @@ Yes. See "External services" above for what is sent, when, and to whom.
 
 = Can I use it with WooCommerce? =
 
-Yes. If your Blue Search application has been configured with your WooCommerce catalogue, it can help visitors discover products through natural-language search.
+Yes. If your BlueSearch application has been configured with your WooCommerce catalogue, it can help visitors discover products through natural-language search.
 
 == Screenshots ==
 
-1. Floating Blue Search launcher.
-2. Inline Blue Search embed.
+1. Floating BlueSearch launcher.
+2. Inline BlueSearch embed.
 3. Plugin settings page.
 
 == Changelog ==
 
 = 1.0.34 =
 
+* Plugin name now matches the product name, BlueSearch.
 * Updated to the current widget build. Title, logo, colours and welcome text now come from the assistant's own settings, so a shortcode only needs `appid`.
 * Language is no longer forced to Norwegian: the widget uses the visitor's own choice or browser language, unless `defaultlang` (or `lang`) is set. Any language the widget supports is accepted.
 * App IDs keep their capital letters.

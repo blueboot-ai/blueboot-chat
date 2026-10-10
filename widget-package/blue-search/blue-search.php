@@ -1,10 +1,11 @@
 <?php
 /**
- * Plugin Name: Blue Search
- * Plugin URI:  https://www.blueboot.ai
- * Description: Embeds the Blue Search Angular chat as a floating launcher or a full-width embed.
+ * Plugin Name: BlueSearch
+ * Plugin URI:  https://blueboot.ai
+ * Description: Adds the BlueSearch AI search and chat widget to your site: a chat button, a search box, an icon or a panel.
  * Version:     1.0.34
- * Author:      BlueBoot
+ * Author:      BlueBoot R&D AS
+ * Author URI:  https://blueboot.ai
  * Text Domain: blue-search
  * License:     GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -12,81 +13,91 @@
 
 if (!defined('ABSPATH')) exit;
 
-// Buffer for one or more launchers to print at end of <body>
-$GLOBALS['bsrch_launcher_markup'] = [];
+// Launchers to print at the end of <body>: attribute arrays, escaped on output.
+$GLOBALS['bsrch_launchers'] = [];
 
 /* =============================================================================
- * Assets (register; enqueue only when shortcode is used)
+ * Assets (registered on init; enqueued only where a shortcode or the global
+ * launcher is used)
  * ============================================================================= */
 function bsrch_register_assets() {
-    $assets_uri = trailingslashit(plugin_dir_url(__FILE__)) . 'assets/';
-    $assets_dir = trailingslashit(plugin_dir_path(__FILE__)) . 'assets/';
+    $dir = trailingslashit(plugin_dir_path(__FILE__)) . 'assets/';
+    $uri = trailingslashit(plugin_dir_url(__FILE__)) . 'assets/';
 
-    $css  = current(glob($assets_dir . 'styles*.css')) ?: '';
-    $poly = current(glob($assets_dir . 'polyfills*.js')) ?: '';
-    $main = current(glob($assets_dir . 'main*.js')) ?: '';
-
-    if ($css) {
-        wp_register_style(
-            'blue-search-styles',
-            $assets_uri . basename($css),
-            [],
-            @filemtime($css) ?: null
-        );
+    if (!file_exists($dir . 'main.js') || !file_exists($dir . 'polyfills.js')) {
+        return;
     }
 
-    if ($poly) {
-        wp_register_script(
-            'blue-search-polyfills',
-            $assets_uri . basename($poly),
-            [],
-            @filemtime($poly) ?: null,
-            true
-        );
-    }
+    // zone.js; must run before the widget bundle.
+    wp_register_script(
+        'blue-search-polyfills',
+        $uri . 'polyfills.js',
+        [],
+        (string) filemtime($dir . 'polyfills.js'),
+        true
+    );
 
-    if ($main) {
-        wp_register_script(
-            'blue-search-main',
-            $assets_uri . basename($main),
-            $poly ? ['blue-search-polyfills'] : [],
-            @filemtime($main) ?: null,
-            true
-        );
+    // The widget (widget2). Defines the <blue-search-*> custom elements.
+    wp_register_script(
+        'blue-search-main',
+        $uri . 'main.js',
+        ['blue-search-polyfills'],
+        (string) filemtime($dir . 'main.js'),
+        true
+    );
 
-    }
+    // Moves launchers to be direct children of <body>, so a transformed or
+    // overflow-clipped theme wrapper cannot trap the fixed-position button.
+    wp_add_inline_script(
+        'blue-search-polyfills',
+        '(function(){var els=document.getElementsByClassName("bsrch-launcher-el");'
+        . 'for(var i=0;i<els.length;i++){if(document.body&&els[i].parentNode!==document.body){document.body.appendChild(els[i]);}}})();',
+        'before'
+    );
+
+    // Layout for the custom elements. A style handle with no file of its own,
+    // so the CSS is printed by WordPress, only on pages using the widget.
+    wp_register_style('blue-search-inline', false, [], '1');
+    wp_add_inline_style(
+        'blue-search-inline',
+        'blue-search-embed,blue-search-embed-popup,blue-search-embed-docked{display:block;background:transparent!important;}'
+        . 'blue-search-launcher{display:block;position:relative;z-index:2147483647;background:transparent!important;}'
+    );
 }
 add_action('init', 'bsrch_register_assets');
 
+/**
+ * Print queued launchers at the end of <body>, before the footer scripts
+ * (priority 20), so the elements exist when the scripts run.
+ */
 add_action('wp_footer', function () {
-    if (!empty($GLOBALS['bsrch_launcher_markup'])) {
-        foreach ($GLOBALS['bsrch_launcher_markup'] as $html) {
-            echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    foreach ($GLOBALS['bsrch_launchers'] as $pairs) {
+        echo '<blue-search-launcher class="bsrch-launcher-el"';
+        foreach ($pairs as $k => $v) {
+            if ($v === '' || $v === null) continue;
+            echo ' ' . esc_attr($k) . '="' . esc_attr($v) . '"';
         }
-        $GLOBALS['bsrch_launcher_markup'] = [];
+        echo '></blue-search-launcher>';
     }
-}, 100);
+    $GLOBALS['bsrch_launchers'] = [];
+}, 5);
 
-/** Mark Angular bundles as ES modules. */
+/**
+ * The widget bundles are ES modules. $tag can also hold the handle's inline
+ * scripts, so only the tag that loads the file (the one with src=) is changed.
+ */
 add_filter('script_loader_tag', function ($tag, $handle) {
     if ($handle === 'blue-search-polyfills' || $handle === 'blue-search-main') {
-        if (strpos($tag, 'type="module"') === false) {
-            $tag = str_replace('<script ', '<script type="module" ', $tag);
-        }
+        $tag = preg_replace('/<script(?![^>]*\stype=)([^>]*\ssrc=)/', '<script type="module"$1', $tag, 1);
     }
     return $tag;
 }, 10, 2);
 
 /** Enqueue helper (called inside each shortcode so assets load only where used). */
 function bsrch_enqueue_assets_for_shortcode() {
-    if (wp_style_is('blue-search-styles', 'registered')) {
-        wp_enqueue_style('blue-search-styles');
-    }
     if (wp_script_is('blue-search-main', 'registered')) {
-        if (wp_script_is('blue-search-polyfills', 'registered')) {
-            wp_enqueue_script('blue-search-polyfills');
-        }
         wp_enqueue_script('blue-search-main');
+        wp_enqueue_style('blue-search-inline');
     }
 }
 
@@ -119,13 +130,6 @@ function bsrch_build_attrs(array $pairs) {
         $out[] = sprintf('%s="%s"', esc_attr($k), esc_attr($v));
     }
     return implode(' ', $out);
-}
-
-/** Wrapper-scoped transparency CSS */
-function bsrch_transparent_bg_inline_css() {
-    return '<style class="bsrch-transparent-bg">
-      blue-search-embed, blue-search-embed-popup, blue-search-embed-docked, blue-search-launcher{display:block;background:transparent!important;}
-    </style>';
 }
 
 /** Sanitizers */
@@ -176,8 +180,8 @@ add_action('admin_init', 'bsrch_register_settings');
 /** Add an options page under Settings */
 function bsrch_add_options_page() {
     add_options_page(
-        'Blue Search Chat',
-        'Blue Search Chat',
+        'BlueSearch',
+        'BlueSearch',
         'manage_options',
         'blue-search-settings',
         'bsrch_render_settings_page'
@@ -193,7 +197,7 @@ function bsrch_render_settings_page() {
     $appid   = get_option('bsrch_global_appid', '');
     ?>
     <div class="wrap">
-        <h1>Blue Search Chat</h1>
+        <h1>BlueSearch</h1>
         <p>Configure global launcher behavior.</p>
 
         <form method="post" action="options.php">
@@ -313,9 +317,9 @@ function bsrch_widget_atts_defaults() {
     ];
 }
 
-function bsrch_widget_attrs(array $a) {
+function bsrch_widget_attr_pairs(array $a) {
     $lang = bsrch_sanitize_lang($a['defaultlang'] !== '' ? $a['defaultlang'] : $a['lang']);
-    return bsrch_build_attrs([
+    return [
         'appid'        => bsrch_sanitize_slug($a['appid']),
         'defaultlang'  => $lang,
         'title'        => $a['title'],
@@ -324,7 +328,11 @@ function bsrch_widget_attrs(array $a) {
         'fontfamily'   => sanitize_text_field($a['fontfamily']),
         'backcolor'    => sanitize_text_field($a['backcolor']),
         'messagecolor' => sanitize_text_field($a['messagecolor']),
-    ]);
+    ];
+}
+
+function bsrch_widget_attrs(array $a) {
+    return bsrch_build_attrs(bsrch_widget_attr_pairs($a));
 }
 
 /* =============================================================================
@@ -334,20 +342,9 @@ add_shortcode('blue-search-launcher', function ($atts = []) {
     bsrch_enqueue_assets_for_shortcode();
 
     $a = shortcode_atts(bsrch_widget_atts_defaults(), $atts, 'blue-search-launcher');
-    $attrs = bsrch_widget_attrs($a);
+    $GLOBALS['bsrch_launchers'][] = bsrch_widget_attr_pairs($a);
 
-    // Render as direct child of <body> to escape transformed/overflowed wrappers
-    $html  = '<blue-search-launcher class="bsrch-launcher-el" ' . $attrs . '></blue-search-launcher>';
-    $html .= '<style class="bsrch-launcher-css">blue-search-launcher{display:block;position:relative;z-index:2147483647;}</style>';
-    $html .= '<script class="bsrch-launcher-mount">(function(){'
-          .  'var els=document.getElementsByClassName("bsrch-launcher-el");'
-          .  'if(!els||!els.length) return;'
-          .  'for(var i=0;i<els.length;i++){var el=els[i];if(document.body && el.parentNode!==document.body){document.body.appendChild(el);}}'
-          .  '})();</script>';
-
-    $GLOBALS['bsrch_launcher_markup'][] = $html;
-
-    // Nothing in content area
+    // Printed at the end of <body> (see wp_footer above); nothing in the content.
     return '';
 });
 
@@ -366,8 +363,7 @@ function bsrch_render_block_embed($tag, $atts) {
         esc_attr($width)
     );
 
-    return bsrch_transparent_bg_inline_css() .
-        sprintf(
+    return sprintf(
             '<div class="bb-embed-host" style="display:block;"><%1$s %2$s style="%3$s"></%1$s></div>',
             $tag,
             bsrch_widget_attrs($a),
@@ -396,8 +392,7 @@ add_shortcode('blue-search-embed-icon', function ($atts = []) {
 
     $a = shortcode_atts(bsrch_widget_atts_defaults(), $atts, 'blue-search-embed-icon');
 
-    return bsrch_transparent_bg_inline_css() .
-        sprintf(
+    return sprintf(
             '<blue-search-embed-icon %s style="%s"></blue-search-embed-icon>',
             bsrch_widget_attrs($a),
             esc_attr('display:inline-block;--bb-back:transparent;--bb-hdr-bg:transparent;')
