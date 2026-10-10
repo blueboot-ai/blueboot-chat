@@ -1,0 +1,62 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "widget2": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": ".",
+      "prefix": "blue-search",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "browser": "elements.ts",
+            "index": "index.html",
+            "tsConfig": "tsconfig.app.json",
+            "polyfills": ["zone.js"],
+
+            "outputPath": {
+              "base": "dist",
+              "browser": ""
+            },
+
+            "assets": [
+              {
+                "glob": "INSTALL.md",
+                "input": ".",
+                "output": "."
+              }
+            ]
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "none",
+              "optimization": true,
+              "sourceMap": false,
+              "budgets": [
+                { "type": "initial", "maximumWarning": "1500kb", "maximumError": "3mb" },
+                { "type": "anyComponentStyle", "maximumWarning": "50kb", "maximumError": "100kb" }
+              ]
+            },
+            "development": {
+              "outputHashing": "none",
+              "optimization": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": { "buildTarget": "widget2:build:development" },
+          "defaultConfiguration": "development"
+        }
+      }
+    }
+  },
+  "cli": {
+    "analytics": "ec759102-edec-4f24-8c79-f284b3411c02"
+  }
+}

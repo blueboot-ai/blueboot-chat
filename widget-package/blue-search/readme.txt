@@ -4,20 +4,21 @@ Tags: chat, embed, launcher, angular
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.33
+Stable tag: 1.0.34
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Embeds the Blue Search AI chat widget in four layouts via shortcodes: chat button, search box, icon, or panel.
+Embeds the Blue Search AI chat widget in five layouts via shortcodes: chat button, search box, icon, panel, or docked panel.
 
 == Description ==
 
-Blue Search adds an AI-powered search and chat widget to your WordPress site, in four layouts:
+Blue Search adds an AI-powered search and chat widget to your WordPress site, in five layouts:
 
 * `[blue-search-launcher]` – Chat button: a floating launcher button that opens the chat.
 * `[blue-search-embed]` – Search box: an inline, full-width embed.
 * `[blue-search-embed-icon]` – Icon: a compact, inline icon version of the embed.
 * `[blue-search-embed-popup]` – Panel: a panel-style embed of the assistant.
+* `[blue-search-embed-docked]` – Docked panel: the same open panel, as part of the page instead of over it.
 
 You can also enable the launcher globally from **Settings → BlueSearch**.
 
@@ -32,15 +33,15 @@ Assets are enqueued only when a shortcode (or the global launcher) is present on
 
 = Source Code =
 
-The bundled assets/main.js and assets/polyfills.js are the compiled output of the Angular application published at:
+The bundled assets/main.js and assets/polyfills.js are the compiled output of the Angular widget published at:
 
 https://github.com/blueboot-ai/blueboot-chat
 
 Relevant directories in that repository:
 
+* `widget2` – the Angular chat widget source.
 * `widget-package/blue-search` – the WordPress plugin.
-* `src/app/widget2` – the Angular chat widget source.
-* `tools` – build and packaging scripts (`npm install && npm run build:wp` builds the widget and assembles the plugin folder).
+* `tools` – the packaging script. `npm install && npm run release` builds the widget and produces the plugin zip.
 
 This plugin does not include any automatic update mechanism outside of the official WordPress.org update system. For questions, contact hello@blueboot.ai.
 
@@ -81,6 +82,8 @@ This location is for asset access only. To install or update this plugin on a Wo
 
 `[blue-search-embed-popup appid="your-app-id"]` (Panel)
 
+`[blue-search-embed-docked appid="your-app-id"]` (Docked panel)
+
 == Frequently Asked Questions ==
 
 = Do I need a Blue Search account? =
@@ -106,6 +109,15 @@ Yes. If your Blue Search application has been configured with your WooCommerce c
 3. Plugin settings page.
 
 == Changelog ==
+
+= 1.0.34 =
+
+* Updated to the current widget build. Title, logo, colours and welcome text now come from the assistant's own settings, so a shortcode only needs `appid`.
+* Language is no longer forced to Norwegian: the widget uses the visitor's own choice or browser language, unless `defaultlang` (or `lang`) is set. Any language the widget supports is accepted.
+* App IDs keep their capital letters.
+* New shortcode `[blue-search-embed-docked]`: the open panel as part of the page.
+* Optional shortcode attributes: `assistantid`, `fontsize`, `fontfamily`, `backcolor`, `messagecolor`.
+* Smaller package: the widget no longer needs separate image files.
 
 = 1.0.33 =
 

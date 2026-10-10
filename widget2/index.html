@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>widget2 — local test page</title>
+  <!--
+    NOT SHIPPED. The build emits main.js and polyfills.js; a customer's page
+    supplies its own HTML and loads those two scripts. This file exists so
+    `npm start` has something to serve, and so the widget can be opened against
+    a real app id without standing up a host site.
+
+    Replace YOUR_APP_ID below, or add ?appid=... handling if you need it often.
+  -->
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 40px; max-width: 760px; }
+    h1   { font-size: 1.1rem; font-weight: 600; }
+    section { margin: 40px 0; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  <h1>widget2 — local test page</h1>
+
+  <section>
+    <p>Search box — <code>&lt;blue-search-embed&gt;</code></p>
+    <blue-search-embed appid="YOUR_APP_ID"></blue-search-embed>
+  </section>
+
+  <section>
+    <p>Icon — <code>&lt;blue-search-embed-icon&gt;</code></p>
+    <blue-search-embed-icon appid="YOUR_APP_ID"></blue-search-embed-icon>
+  </section>
+
+  <section>
+    <p>Chat button — <code>&lt;blue-search-launcher&gt;</code></p>
+    <blue-search-launcher appid="YOUR_APP_ID"></blue-search-launcher>
+  </section>
+</body>
+</html>

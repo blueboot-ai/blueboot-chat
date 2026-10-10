@@ -1,0 +1,111 @@
+/* Shared by the panel composer and the embed input row, so everything here is
+   expressed against the widget's own tokens (--bb-*) rather than either
+   surface's local rules. */
+
+:host {
+  display: block;
+}
+
+/*
+  Empty until the first control is projected in, and an empty strip is dead
+  space with a line through it. `:empty` on the host is the right test for
+  content projection: what the host holds in the light DOM *is* the projected
+  content, so no children means nothing was passed.
+
+  Whitespace counts as a child, which is why the composer writes the element
+  with its tags together when it has nothing to put inside.
+*/
+:host(:empty) {
+  display: none;
+}
+
+/* The host sets display, which beats the browser's own [hidden] rule. The
+   surfaces bind [hidden] when every control on the strip is away — :empty
+   cannot see that, since a hidden child is still a child. */
+:host([hidden]) {
+  display: none;
+}
+
+.if-ruler {
+  /* THE STRIP SIZES OFF --bb-font-size-BASE, not the inherited font size, and
+     this one declaration is what holds the whole strip together on a phone.
+     Every length below is in em — gap, padding, height, and the controls
+     projected into it — so they all resolve against whatever font-size lands
+     here. Below 600px each surface multiplies --bb-font-size by 1.5
+     (chat.component.css, embed.component.css) for conversation text read at
+     arm's length, and inheriting that turned a 28px strip into a ~59px one
+     with the gaps and padding grown to match: a band of empty space under the
+     input, which is what it looked like in practice.
+
+     A tools strip is not conversation text. It should be the same strip on a
+     phone as on a desktop, and the coarse-pointer rule at the bottom of this
+     file is what makes its controls thumb-sized — proportion, not the mobile
+     bump, is what a tap target needs.
+
+     Chained through --bb-font-size so a host that sets only that still
+     reaches it. Same exception, same reason, as .cmp-brand in
+     composer.component.css and the icon button in embed.component.css. */
+  font-size: var(--bb-font-size-base, var(--bb-font-size, 16px));
+
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+
+  /* Right by default. These are tools acting on the message, and they belong
+     on the same side as the send button they sit under — a control drifting
+     out to the left edge reads as unrelated to the composer above it. The
+     `align` input can still override this per surface. */
+  justify-content: flex-end;
+
+  /* No hairline. There was one here — a 1px top border separating these
+     controls from the input above — and it drew a short line under one end of
+     a frame it did not span, which reads as an artefact rather than as a
+     divider. The gap and the input frame's own edge already separate the two.
+
+     The class name stays: it is what the surfaces bind their `align` variants
+     to, and renaming it costs more than the word is worth. */
+
+  /* 14px on the right, 2px on the left.
+     Deliberately uneven: the ruler is right-justified, so the last control on
+     it — the emoji trigger — sits hard against the frame's inner edge, while
+     the left side ends in empty space where 2px is invisible either way. The
+     padding is only doing work on the side something actually reaches.
+
+     In em against the strip's own base size (set at the top of this rule), so
+     it is clearance from the frame that stays proportional to the controls it
+     separates — and, because that base ignores the mobile bump, the same
+     clearance on a phone as on a desktop. The comment here used to claim
+     these were fixed pixels; they have been em for as long as the rule has. */
+  padding: 0.25em 0.875em 0 0.125em;
+
+  /* A fixed height, not a floor that the contents can exceed.
+     The controls on this strip come and go with the mode — the emoji trigger
+     is live-chat only — and while the strip was free to grow, appearing was
+     enough to change its height and shove the composer above it. Pinning the
+     height means the strip is the same strip whichever controls are on it, and
+     switching modes moves nothing.
+
+     max() of the em ratio and the old 28px: the ratio keeps the strip in
+     proportion to the type, the pixel term keeps a usable target when the type
+     is small. It must stay >= the tallest control here (both triggers are
+     2em), or a control would overflow rather than the strip accommodating it. */
+  height: max(2em, 28px);
+}
+
+.if-ruler.align-start {
+  justify-content: flex-start;
+}
+
+.if-ruler.align-between {
+  justify-content: space-between;
+}
+
+/* Coarse pointers get a taller strip — the controls on it are tap targets. */
+@media (pointer: coarse) {
+  .if-ruler {
+    /* Same rule as above, at the coarse-pointer sizes: >= the 2.45em both
+       triggers grow to for a thumb. */
+    height: max(2.45em, 34px);
+    gap: 0.375em;
+  }
+}

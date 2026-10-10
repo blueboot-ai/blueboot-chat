@@ -3,7 +3,7 @@
  * Plugin Name: Blue Search
  * Plugin URI:  https://www.blueboot.ai
  * Description: Embeds the Blue Search Angular chat as a floating launcher or a full-width embed.
- * Version:     1.0.33
+ * Version:     1.0.34
  * Author:      BlueBoot
  * Text Domain: blue-search
  * License:     GPL-2.0-or-later
@@ -54,21 +54,11 @@ function bsrch_register_assets() {
             true
         );
 
-        // Provide an assets base for images consumed by the Angular bundle
-        $imgBase = esc_url_raw($assets_uri . 'img/');
-        wp_add_inline_script(
-            'blue-search-main',
-            'window.__BLUE_SEARCH_ASSETS_BASE = ' . wp_json_encode($imgBase) . ';',
-            'before'
-        );
     }
 }
 add_action('init', 'bsrch_register_assets');
 
 add_action('wp_footer', function () {
-    if (wp_script_is('blue-search-main', 'enqueued')) {
-        echo '<app-root style="display:none" aria-hidden="true" role="presentation"></app-root>';
-    }
     if (!empty($GLOBALS['bsrch_launcher_markup'])) {
         foreach ($GLOBALS['bsrch_launcher_markup'] as $html) {
             echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -134,17 +124,18 @@ function bsrch_build_attrs(array $pairs) {
 /** Wrapper-scoped transparency CSS */
 function bsrch_transparent_bg_inline_css() {
     return '<style class="bsrch-transparent-bg">
-      blue-search-embed, blue-search-launcher{display:block;background:transparent!important;}
+      blue-search-embed, blue-search-embed-popup, blue-search-embed-docked, blue-search-launcher{display:block;background:transparent!important;}
     </style>';
 }
 
 /** Sanitizers */
 function bsrch_sanitize_lang($lang) {
-    $lang = strtolower(sanitize_key($lang));
-    return in_array($lang, ['en','no','ar'], true) ? $lang : 'no';
+    $lang = strtolower(trim((string)$lang));
+    return preg_match('/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/', $lang) ? $lang : '';
 }
+/** App ids are Firestore document ids: case-sensitive, so not sanitize_key(). */
 function bsrch_sanitize_slug($val) {
-    return sanitize_key($val);
+    return preg_replace('/[^A-Za-z0-9_\-]/', '', (string)$val);
 }
 function bsrch_sanitize_size($val, $fallback) {
     $val = trim((string)$val);
@@ -252,7 +243,9 @@ function bsrch_render_settings_page() {
             <code>[blue-search-launcher appid="YOUR_APP_ID"]</code> &mdash; Chat button<br/>
             <code>[blue-search-embed appid="YOUR_APP_ID"]</code> &mdash; Search box<br/>
             <code>[blue-search-embed-icon appid="YOUR_APP_ID"]</code> &mdash; Icon<br/>
-            <code>[blue-search-embed-popup appid="YOUR_APP_ID"]</code> &mdash; Panel
+            <code>[blue-search-embed-popup appid="YOUR_APP_ID"]</code> &mdash; Panel<br/>
+            <code>[blue-search-embed-docked appid="YOUR_APP_ID"]</code> &mdash; Panel, part of the page<br/>
+            Optional: <code>defaultlang="no"</code> to choose the language for visitors who have not picked one.
         </p>
     </div>
     <?php
@@ -292,41 +285,60 @@ function bsrch_maybe_queue_global_launcher() {
 add_action('wp', 'bsrch_maybe_queue_global_launcher');
 
 /* =============================================================================
- * Shortcode: [blue-search-launcher ...]
+ * Shortcode attributes shared by every widget tag
+ *
+ * The bundle is widget2 (./widget2 in this repository), the same widget
+ * served at https://blueboot.ai/assets/widget/latest/. Title, logo, colours and
+ * welcome text come from the app's own settings, looked up by appid, so a
+ * shortcode only needs appid. The rest are optional overrides.
+ *
+ * Attributes the older bundle read (welcometext, logosrc, logoalt, robotsrc,
+ * env) are still accepted so existing shortcodes keep working, and ignored.
+ *
+ * `lang` is kept as an alias of `defaultlang`. Neither is sent unless given:
+ * an empty value lets the widget use the visitor's own choice or browser
+ * language instead of forcing one on everybody.
+ * ============================================================================= */
+function bsrch_widget_atts_defaults() {
+    return [
+        'appid'        => '',
+        'defaultlang'  => '',
+        'lang'         => '',
+        'title'        => '',
+        'assistantid'  => '',
+        'fontsize'     => '',
+        'fontfamily'   => '',
+        'backcolor'    => '',
+        'messagecolor' => '',
+    ];
+}
+
+function bsrch_widget_attrs(array $a) {
+    $lang = bsrch_sanitize_lang($a['defaultlang'] !== '' ? $a['defaultlang'] : $a['lang']);
+    return bsrch_build_attrs([
+        'appid'        => bsrch_sanitize_slug($a['appid']),
+        'defaultlang'  => $lang,
+        'title'        => $a['title'],
+        'assistantid'  => sanitize_text_field($a['assistantid']),
+        'fontsize'     => sanitize_text_field($a['fontsize']),
+        'fontfamily'   => sanitize_text_field($a['fontfamily']),
+        'backcolor'    => sanitize_text_field($a['backcolor']),
+        'messagecolor' => sanitize_text_field($a['messagecolor']),
+    ]);
+}
+
+/* =============================================================================
+ * Shortcode: [blue-search-launcher ...]  Chat button, bottom corner.
  * ============================================================================= */
 add_shortcode('blue-search-launcher', function ($atts = []) {
     bsrch_enqueue_assets_for_shortcode();
 
-    $a = shortcode_atts([
-        'title'        => 'Assistant',
-        'welcometext'  => '',
-        'logosrc'      => '',
-        'logoalt'      => '',
-        'robotsrc'     => '',
-        'appid'        => '',
-        'env'          => '',
-        'lang'         => 'no',
-    ], $atts, 'blue-search-launcher');
-
-    $logo_url  = $a['logosrc']  !== '' ? bsrch_normalize_asset_url($a['logosrc'])  : '';
-    $robot_url = $a['robotsrc'] !== '' ? bsrch_normalize_asset_url($a['robotsrc']) : trailingslashit(plugin_dir_url(__FILE__)) . 'assets/img/robot.png';
-
-    $attrs = bsrch_build_attrs([
-        'title'       => $a['title'],
-        'welcometext' => $a['welcometext'],
-        'logoalt'     => $a['logoalt'],
-        'appid'       => bsrch_sanitize_slug($a['appid']),
-        'env'         => $a['env'],
-        'lang'        => bsrch_sanitize_lang($a['lang']),
-        'logosrc'     => $logo_url ?: null,
-        'robotsrc'    => $robot_url ?: null,
-    ]);
+    $a = shortcode_atts(bsrch_widget_atts_defaults(), $atts, 'blue-search-launcher');
+    $attrs = bsrch_widget_attrs($a);
 
     // Render as direct child of <body> to escape transformed/overflowed wrappers
     $html  = '<blue-search-launcher class="bsrch-launcher-el" ' . $attrs . '></blue-search-launcher>';
-    // Scoped stacking/visibility (not global)
     $html .= '<style class="bsrch-launcher-css">blue-search-launcher{display:block;position:relative;z-index:2147483647;}</style>';
-    // Reparent to body
     $html .= '<script class="bsrch-launcher-mount">(function(){'
           .  'var els=document.getElementsByClassName("bsrch-launcher-el");'
           .  'if(!els||!els.length) return;'
@@ -339,150 +351,56 @@ add_shortcode('blue-search-launcher', function ($atts = []) {
     return '';
 });
 
-/* =============================================================================
- * Shortcode: [blue-search-embed ...]
- * ============================================================================= */
-add_shortcode('blue-search-embed', function ($atts = []) {
+/** Block-level embed (search box, popup, docked): wrapped, with a width. */
+function bsrch_render_block_embed($tag, $atts) {
     bsrch_enqueue_assets_for_shortcode();
 
-    $a = shortcode_atts([
-        'title'        => 'Assistant',
-        'welcometext'  => '',
-        'logosrc'      => '',
-        'logoalt'      => '',
-        'appid'        => '',
-        'env'          => '',
-        'lang'         => 'no',
-        // layout
-        'width'        => '100%',
-    ], $atts, 'blue-search-embed');
-
-    $logo_url = $a['logosrc'] !== '' ? bsrch_normalize_asset_url($a['logosrc']) : '';
-
-    $ce_attrs = bsrch_build_attrs([
-        'title'       => $a['title'],
-        'welcometext' => $a['welcometext'],
-        'logoalt'     => $a['logoalt'],
-        'appid'       => bsrch_sanitize_slug($a['appid']),
-        'env'         => $a['env'],
-        'lang'        => bsrch_sanitize_lang($a['lang']),
-        'logosrc'     => $logo_url ?: null,
-    ]);
-
+    $a = shortcode_atts(
+        array_merge(bsrch_widget_atts_defaults(), ['width' => '100%']),
+        $atts,
+        $tag
+    );
     $width = bsrch_sanitize_size($a['width'], '100%');
-
-    // Let the theme/container decide max width
-    $wrap_style = 'display:block;';
-
     $el_style = sprintf(
         'display:block;width:%s;--bb-back:transparent;--bb-hdr-bg:transparent;',
         esc_attr($width)
     );
 
-    $transparent_css = bsrch_transparent_bg_inline_css();
-
-    return $transparent_css .
+    return bsrch_transparent_bg_inline_css() .
         sprintf(
-            '<div class="bb-embed-host" style="%s"><blue-search-embed %s style="%s"></blue-search-embed></div>',
-            esc_attr($wrap_style),
-            $ce_attrs,
+            '<div class="bb-embed-host" style="display:block;"><%1$s %2$s style="%3$s"></%1$s></div>',
+            $tag,
+            bsrch_widget_attrs($a),
             $el_style
         );
+}
+
+/* [blue-search-embed ...]         Search box, in the page's flow. */
+add_shortcode('blue-search-embed', function ($atts = []) {
+    return bsrch_render_block_embed('blue-search-embed', $atts);
 });
 
-/* =============================================================================
- * Shortcode: [blue-search-embed-icon ...]
- * "Icon" arrangement: a compact mark for a host's own header -- no box, no
- * border, no wider than its own words. The panel floats; the mark does not
- * move. Same custom-element family as [blue-search-embed], different tag.
- * ============================================================================= */
+/* [blue-search-embed-popup ...]   Panel, already open, over the content. */
+add_shortcode('blue-search-embed-popup', function ($atts = []) {
+    return bsrch_render_block_embed('blue-search-embed-popup', $atts);
+});
+
+/* [blue-search-embed-docked ...]  Same open panel, part of the page. */
+add_shortcode('blue-search-embed-docked', function ($atts = []) {
+    return bsrch_render_block_embed('blue-search-embed-docked', $atts);
+});
+
+/* [blue-search-embed-icon ...]    Compact mark for a header or menu bar. */
 add_shortcode('blue-search-embed-icon', function ($atts = []) {
     bsrch_enqueue_assets_for_shortcode();
 
-    $a = shortcode_atts([
-        'title'        => 'Assistant',
-        'welcometext'  => '',
-        'logosrc'      => '',
-        'logoalt'      => '',
-        'appid'        => '',
-        'env'          => '',
-        'lang'         => 'no',
-    ], $atts, 'blue-search-embed-icon');
+    $a = shortcode_atts(bsrch_widget_atts_defaults(), $atts, 'blue-search-embed-icon');
 
-    $logo_url = $a['logosrc'] !== '' ? bsrch_normalize_asset_url($a['logosrc']) : '';
-
-    $ce_attrs = bsrch_build_attrs([
-        'title'       => $a['title'],
-        'welcometext' => $a['welcometext'],
-        'logoalt'     => $a['logoalt'],
-        'appid'       => bsrch_sanitize_slug($a['appid']),
-        'env'         => $a['env'],
-        'lang'        => bsrch_sanitize_lang($a['lang']),
-        'logosrc'     => $logo_url ?: null,
-    ]);
-
-    $el_style = 'display:inline-block;--bb-back:transparent;--bb-hdr-bg:transparent;';
-
-    $transparent_css = bsrch_transparent_bg_inline_css();
-
-    return $transparent_css .
+    return bsrch_transparent_bg_inline_css() .
         sprintf(
             '<blue-search-embed-icon %s style="%s"></blue-search-embed-icon>',
-            $ce_attrs,
-            esc_attr($el_style)
-        );
-});
-
-/* =============================================================================
- * Shortcode: [blue-search-embed-popup ...]
- * "Panel" arrangement: already open, no layout of its own, on screen for as
- * long as the host keeps the element. Same custom-element family as
- * [blue-search-embed], different tag.
- * ============================================================================= */
-add_shortcode('blue-search-embed-popup', function ($atts = []) {
-    bsrch_enqueue_assets_for_shortcode();
-
-    $a = shortcode_atts([
-        'title'        => 'Assistant',
-        'welcometext'  => '',
-        'logosrc'      => '',
-        'logoalt'      => '',
-        'appid'        => '',
-        'env'          => '',
-        'lang'         => 'no',
-        // layout
-        'width'        => '100%',
-    ], $atts, 'blue-search-embed-popup');
-
-    $logo_url = $a['logosrc'] !== '' ? bsrch_normalize_asset_url($a['logosrc']) : '';
-
-    $ce_attrs = bsrch_build_attrs([
-        'title'       => $a['title'],
-        'welcometext' => $a['welcometext'],
-        'logoalt'     => $a['logoalt'],
-        'appid'       => bsrch_sanitize_slug($a['appid']),
-        'env'         => $a['env'],
-        'lang'        => bsrch_sanitize_lang($a['lang']),
-        'logosrc'     => $logo_url ?: null,
-    ]);
-
-    $width = bsrch_sanitize_size($a['width'], '100%');
-
-    $wrap_style = 'display:block;';
-
-    $el_style = sprintf(
-        'display:block;width:%s;--bb-back:transparent;--bb-hdr-bg:transparent;',
-        esc_attr($width)
-    );
-
-    $transparent_css = bsrch_transparent_bg_inline_css();
-
-    return $transparent_css .
-        sprintf(
-            '<div class="bb-embed-host" style="%s"><blue-search-embed-popup %s style="%s"></blue-search-embed-popup></div>',
-            esc_attr($wrap_style),
-            $ce_attrs,
-            $el_style
+            bsrch_widget_attrs($a),
+            esc_attr('display:inline-block;--bb-back:transparent;--bb-hdr-bg:transparent;')
         );
 });
 
@@ -492,5 +410,6 @@ add_filter('no_texturize_shortcodes', function($shortcodes){
     $shortcodes[] = 'blue-search-embed';
     $shortcodes[] = 'blue-search-embed-icon';
     $shortcodes[] = 'blue-search-embed-popup';
+    $shortcodes[] = 'blue-search-embed-docked';
     return $shortcodes;
 });

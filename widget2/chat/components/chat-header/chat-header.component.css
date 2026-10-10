@@ -1,0 +1,274 @@
+:host {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.widget-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  flex: 0 0 auto;
+
+  display: grid;
+  /* Four tracks: expand, language, title, actions.
+     The language column is `auto` rather than a fixed width like the expand
+     button's — the trigger sizes itself in em against the widget's type scale,
+     so pinning it to 36px would clip it wherever a site sets a larger font. */
+  grid-template-columns: 36px auto 1fr auto;
+  align-items: center;
+  /* em, so the space between the controls grows with the type the way the
+     controls themselves do - they are sized in em (see the note above). A
+     fixed 10px was the row's one absolute length left: at a large configured
+     fontSize the title and the language trigger grew and the air between them
+     did not, so the row read as tighter the bigger it got. 0.625em is that
+     10px at the 16px base. */
+  gap: 0.625em;
+
+  /* A floor, not a height. This was `height: 52px`, which is a number that
+     only fits one type scale: at a configured fontSize the title and the
+     language trigger both grow — they are sized in em — and a fixed row either
+     clipped them or held them against its own edge. min-height keeps the row
+     from collapsing when there is little in it (no chip, no title) and lets it
+     take whatever its contents actually need above that.
+
+     With border-box, this floor includes the padding below, so at the default
+     scale the row still comes out at the 52px it always was. */
+  min-height: 52px;
+
+  /* The extra left padding is the launcher's resize grip asking for room.
+     Zero by default, so the header is unchanged everywhere the panel has no
+     grip — the embed, and the chat rendered directly on a page. The launcher
+     sets --bb-header-pad-left on <blue-search-base>, and custom properties cross
+     the shadow boundary, so the panel does not need to know why.
+
+     10px under, 8px over. Not symmetry for its own sake: the border and the
+     shadow below the row read as part of its bottom edge, so an even 8/8 sits
+     visibly high in its own band — and now that the height follows the content,
+     this padding is what the row is actually made of rather than slack inside a
+     fixed number. */
+  padding: 8px 12px 10px calc(12px + var(--bb-header-pad-left, 0px));
+
+  background: var(--bb-header-bg);
+  color: var(--bb-header-text);
+
+  border-bottom: 1px solid rgba(0, 0, 0, .06);
+  box-shadow: 0 10px 24px rgba(2, 6, 23, .04);
+}
+
+/* .widget-header.is-full went with the rest of the [mode="full"] styling — see
+   the note in chat.component.css. The class came from [class.is-full]="mode ===
+   'full'", bound to a field nothing ever assigns, so it was never applied. */
+
+.widget-header__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Between the chip and the name, so it tracks the name's own size. */
+  gap: 0.5em;
+
+  font-weight: 700;
+  letter-spacing: .2px;
+  line-height: 1.1;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* One of the header's elements, on the same rhythm as the buttons beside it:
+ * their hit boxes are 28px around an 18px glyph, so the mark gets the same box
+ * and the same optical weight rather than its own. Padding keeps it off the
+ * chip's edge the way the glyphs sit inside their buttons. */
+.header-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+  padding: 3px;
+  box-sizing: border-box;
+
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.header-chip.round {
+  border-radius: 9999px;
+}
+
+/* Sized to fit the chip, never to fill it.
+ *
+ * This was `height: 20px; width: auto`, which is two problems at once. A wide
+ * wordmark became 20px tall and whatever width that implied — often well past
+ * the chip's 28px — and the chip's overflow:hidden then cropped it to a slice
+ * of its middle. A small favicon went the other way: 16 native pixels stretched
+ * to 20 is a blur, and no amount of image-rendering fixes an upscale.
+ *
+ * max-* with auto dimensions does both: anything larger than the chip is scaled
+ * down whole, anything smaller is left at its own size and stays sharp.
+ */
+.brandmark {
+  flex: 0 0 auto;
+
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+
+  display: block;
+  object-fit: contain;
+}
+
+.title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.widget-header__actions {
+  display: flex;
+  align-items: center;
+  /* Between new-chat and hide. Tighter than the row's own gap on purpose: the
+     two belong together as a pair, and the pair is what sits apart from the
+     title. */
+  gap: 0.375em;
+}
+
+.widget-header__max,
+.widget-header__new,
+.widget-header__close {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  /* Inherit the header's own text colour (effectiveHeaderText, set inline on
+     <header> above) rather than a fixed var(--hdr-icon) — that used to be a
+     static default tuned for a light header, so light icons picked for a
+     navy header vanished the moment an app set its own light headerBg (or
+     vice versa). Inheriting always matches whatever the header's actual
+     background needs. */
+  color: inherit;
+  opacity: .85;
+
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+
+  display: grid;
+  place-items: center;
+
+  transition: background .15s ease, opacity .15s ease, transform .06s ease;
+}
+
+.widget-header__max {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.widget-header__max:hover,
+.widget-header__new:hover,
+.widget-header__close:hover {
+  opacity: 1;
+  background: rgba(127, 127, 127, .16);
+}
+
+.widget-header__max:active,
+.widget-header__new:active,
+.widget-header__close:active {
+  transform: translateY(1px);
+}
+
+.widget-header__max:focus-visible,
+.widget-header__new:focus-visible,
+.widget-header__close:focus-visible {
+  outline: 2px solid var(--bb-link);
+  outline-offset: 2px;
+}
+
+.widget-header__max svg[data-icon="restore"] {
+  display: none;
+}
+
+.widget-header__max[aria-pressed="true"] svg[data-icon="max"] {
+  display: none;
+}
+
+.widget-header__max[aria-pressed="true"] svg[data-icon="restore"] {
+  display: inline;
+}
+
+@media (max-width: 600px) {
+  /* The expand/contract toggle goes on a phone.
+   *
+   * The panel opens full-screen here and that is the only shape it should
+   * have — a control whose whole job is to shrink it back to a floating card
+   * is offering a worse version of the same thing, on the device with the
+   * least room for it. It was also the first control in the row, so it took
+   * the position a thumb reaches by accident.
+   *
+   * Removed rather than disabled: there is nothing to communicate. The panel
+   * is not "un-maximised", it is simply the screen. */
+  .widget-header__max {
+    display: none;
+  }
+
+  .widget-header {
+    /* FLEX, not the grid above.
+     *
+     * The grid's tracks are positional — expand, language, title, actions — so
+     * anything missing shifts the rest into the wrong one. Two things can be
+     * missing here: the expand button, always, and the language picker when
+     * langLocked. That is what pushed the hide button off the row.
+     *
+     * Flex has no such notion: each control takes what it needs, the title
+     * takes the rest, and a control that is not rendered costs nothing. */
+    display: flex;
+
+    /* Same change as above: a floor rather than a height, so a phone with a
+       large configured type scale gets a taller row instead of a clipped one.
+       The bottom padding keeps its extra 2px here too. */
+    min-height: 48px;
+    padding: 6px 10px 8px;
+  }
+
+  /* The title is the one elastic item — it absorbs whatever the controls
+     leave. min-width: 0 is what lets it actually shrink: a flex item's floor
+     is its content, so without this a long assistant name would push the
+     buttons off the row instead of being clipped itself. */
+  .widget-header__title {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* The chip shrinks with the header; the mark follows it, because it is sized
+     off the chip rather than off a fixed height of its own. */
+  .header-chip {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* The name goes on a phone. This row holds three controls here - language,
+     new chat, hide (expand is hidden above) - and the title is what
+     squeezes them: it is the only item with no fixed width, so a long
+     assistant name either shortens the buttons' reach or pushes the row
+     taller. The chip stays, because a mark costs 24px and still says whose
+     assistant this is.
+
+     HIDDEN, NOT REMOVED. display:none would take the name out of the
+     accessibility tree as well, and then an app with no logo has a panel that
+     announces nothing but its buttons - the logo's alt is the only other
+     place the title appears (see the template). This is the standard
+     visually-hidden pattern instead: no box, no space, still read aloud. */
+  .title-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

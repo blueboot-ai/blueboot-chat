@@ -1,0 +1,48 @@
+/* Standalone tsconfig for widget2 on its own, outside a host Angular app.
+ * Mirrors the compilerOptions gpt-chat/tsconfig.json + tsconfig.app.json use
+ * for this same code today, so "does it type-check here" matches "does it
+ * type-check inside gpt-chat".
+ *
+ * "types": [] is deliberate and NOT the same as omitting the field: without
+ * it, tsc auto-includes every @types/* package it finds walking up from
+ * this folder — and whatever repo widget2 sits inside (this one included)
+ * may have @types/jasmine and @types/jest both reachable that way, which
+ * conflict with each other (both declare global `describe`/`it`/`expect`).
+ * An empty array turns that ambient lookup off entirely, so widget2's own
+ * type-check never depends on what happens to be installed around it. */
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./out-tsc",
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "sourceMap": true,
+    "declaration": false,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "useDefineForClassFields": false,
+    "types": [],
+    "lib": [
+      "ES2022",
+      "dom"
+    ]
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ]
+}

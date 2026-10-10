@@ -1,0 +1,121 @@
+<button
+  #launcher
+  id="bbc-launcher"
+  [attr.aria-expanded]="!wrapper?.hidden ? 'true' : 'false'"
+  [attr.aria-hidden]="uiReady ? 'false' : 'true'"
+  [style.visibility]="brandingReady ? 'visible' : 'hidden'">
+
+  <!-- Unlike the header logo and message avatars, the launcher button
+       always shows something — it's the widget's only visible surface
+       until someone opens it — so computedRobot falls back to the
+       embedded mark when nothing is configured.
+
+       Always rendered, even when a video is configured: the video (below)
+       is an overlay that fades in on top of this once it actually has a
+       frame to paint, rather than replacing it outright. Removing this while
+       waiting on the video was what made the button hold its whole reveal
+       hostage to the video's multi-megabyte download. -->
+  <img
+    [src]="computedRobot"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+    loading="eager"
+    decoding="async"
+    (error)="onLauncherImgError()"
+    style="display:block; width:100%; height:100%; object-fit:contain; object-position:center; pointer-events:none; -webkit-user-drag:none; user-drag:none;" />
+
+  <!-- Overlaid on the icon above, absolutely positioned within #bbc-launcher
+       (already `position: fixed`, so this positions relative to it). Starts
+       at opacity 0 and fades in only once onLauncherVideoFrameReady() fires
+       from an actual 'loadeddata'/'canplay' event — the blob URL existing is
+       not the same moment the browser has a frame ready to show, and
+       revealing it a beat early is exactly the flash this is meant to avoid.
+       If neither event ever fires, the video just stays invisibly stacked
+       over the icon, which looks identical to the icon alone — a safe
+       failure mode, not a broken one.
+
+       NO AUTOPLAY. The clip runs while the cursor is on the button and at no
+       other time — see hoverVideo() in the component. A launcher video that
+       played itself on every page load was a moving advertisement in the
+       corner of someone else's site whether or not anybody was looking at it;
+       tying it to the pointer makes it something a visitor asks for, and makes
+       the sound that goes with it unsurprising.
+
+       The element is still muted and playsinline. Muted is what lets a play()
+       driven by a hover start at all, and the sound is turned on separately
+       once the browser will allow it. -->
+  <video
+    *ngIf="videoEnabled && computedLauncherVideoSrc"
+    #launcherVideo
+    [src]="computedLauncherVideoSrc"
+    preload="auto"
+    playsinline
+    webkit-playsinline
+    muted
+    (loadeddata)="onLauncherVideoFrameReady()"
+    (canplay)="onLauncherVideoFrameReady()"
+    (ended)="onLauncherVideoEnded()"
+    style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; transition: opacity 260ms ease;"
+    [style.opacity]="videoFrameVisible ? 1 : 0"
+  ></video>
+</button>
+
+<div
+  #wrapper
+  id="bbc-wrapper"
+  hidden
+  [attr.aria-hidden]="uiReady ? null : 'true'">
+  <!-- The resize grip, at the panel's top-left.
+       That corner because the opposite one is anchored to the launcher button
+       and must not move — see beginPanelResize(). It sits in this template,
+       not in <blue-search-base>, so it never has to reach across a shadow root to
+       size the element that owns the size. -->
+  <!-- No *ngIf. It was bound to a getter, and a getter is only re-read when
+       change detection runs — the panel's mode is set from listeners that run
+       outside Angular's zone, so the grip could be absent with nothing in the
+       DOM to explain why. It is always rendered now, and full mode hides it in
+       CSS through the `bbc-full` class positionPanel() already sets. -->
+  <!-- The same mark the embed carries (.embed-resize), in the opposite corner:
+       this one top-left, the embed's bottom-right, because each sits on the
+       corner its panel actually grows from. Rotated 180°, which is the whole
+       difference between the two.
+
+       currentColor, derived from the header band this sits on — see
+       resizeGripColor. It was a bracket drawn in CSS on a dark chip before,
+       which existed only because nothing here could work out a stroke colour
+       that survived both a navy header and a pale one. -->
+  <div id="bbc-resize"
+       role="separator"
+       aria-orientation="horizontal"
+       [attr.aria-label]="'Resize'"
+       [style.color]="resizeGripColor"
+       (pointerdown)="beginPanelResize($event)">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <path d="M11 4 4 11M11 8l-3 3" stroke="currentColor" stroke-width="1.4"
+            stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <!-- Typography is forwarded as inputs rather than left to CSS inheritance
+       from this host: the panel writes --bb-font-size-base on itself from the
+       app config, and a property set on an element beats one inherited from an
+       ancestor — so a host's stated size lost to the configured one. -->
+  <blue-search-base
+    #chat
+    id="bbc-chat"
+    [appid]="appid"
+    [assistantid]="assistantid"
+    [envurl]="envurl"
+    [gptid]="gptid"
+    [defaultlang]="defaultlang"
+    [title]="titleText"
+    [backcolor]="backColor"
+    [messagecolor]="messageColor"
+    [headerbg]="headerBg"
+    [headertext]="headerText"
+    [fontfamily]="fontFamily"
+    [fontsize]="fontSize"
+    [lineheight]="lineHeight">
+  </blue-search-base>
+</div>

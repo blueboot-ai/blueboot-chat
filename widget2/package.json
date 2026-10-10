@@ -1,0 +1,45 @@
+{
+  "name": "widget2",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chat widget module (Angular components). Normally copied into a host Angular app's src/app tree — gpt-chat in this repo — and built as part of it. It can also build itself: `npm run build` emits main.js and polyfills.js, the two scripts a customer's page loads to get the custom elements. See README.md and elements.ts.",
+  "scripts": {
+    "ensure-elements": "node ensure-elements.js",
+
+    "pretypecheck": "npm run ensure-elements",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+
+    "prebuild": "npm run ensure-elements && node build-install-doc.js",
+    "build": "ng build --configuration production",
+
+    "publish-to-assets": "node publish-to-assets.js",
+    "publish": "npm run build && npm run publish-to-assets",
+
+    "prebuild:dev": "npm run ensure-elements && node build-install-doc.js",
+    "build:dev": "ng build --configuration development",
+
+    "prewatch": "npm run ensure-elements",
+    "watch": "ng build --watch --configuration development",
+
+    "prestart": "npm run ensure-elements",
+    "start": "ng serve"
+  },
+  "dependencies": {
+    "@angular/common": "^19.2.0",
+    "@angular/compiler": "^19.2.0",
+    "@angular/core": "^19.2.0",
+    "@angular/elements": "^19.2.0",
+    "@angular/forms": "^19.2.0",
+    "@angular/platform-browser": "^19.2.0",
+    "ngx-markdown": "^19.1.1",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.8.1",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^19.2.0",
+    "@angular/cli": "~19.2.0",
+    "@angular/compiler-cli": "^19.2.0",
+    "typescript": "~5.7.3"
+  }
+}

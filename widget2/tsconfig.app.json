@@ -1,0 +1,24 @@
+/* Build config, as opposed to tsconfig.json which is the standalone
+ * type-check. The two are kept apart because they answer different questions:
+ * `npm run typecheck` asks whether the module compiles anywhere, and is cheap;
+ * this one is what `ng build` compiles, and needs the Angular compiler options
+ * that a bare tsc run has no use for.
+ *
+ * `files` names only the entry. Everything else is reached through its imports,
+ * which is what keeps a file nobody imports out of the bundle rather than
+ * silently shipping it. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    "types": []
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": false
+  },
+  "files": ["elements.ts"],
+  "include": ["**/*.d.ts"]
+}

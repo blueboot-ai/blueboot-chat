@@ -1,78 +1,70 @@
-# Blue Search — WordPress Plugin Source
+# Blue Search — WordPress plugin
 
-This repository is the public source for the **Blue Search** WordPress plugin (listed on WordPress.org). It contains:
+Public source of the **Blue Search** WordPress plugin.
 
-- `src/app/widget2` — the Angular chat widget source. This is compiled into the plugin's bundled `assets/main.js` and `assets/polyfills.js`.
-- `widget-package/blue-search` — the WordPress plugin itself (PHP, shortcodes, `readme.txt`), ready to be zipped and installed on a WordPress site.
-- `tools/` — build scripts, including `deploy-wp.js`, which builds the widget and assembles the plugin folder.
+| Folder | What it is |
+|---|---|
+| `widget-package/blue-search/` | The WordPress plugin: PHP, `readme.txt`, `uninstall.php`. |
+| `widget2/` | Source of the Angular chat widget the plugin bundles (`assets/main.js`, `assets/polyfills.js`). |
+| `tools/` | The scripts below. |
 
-## Building the plugin
+## Build the plugin
 
 ```bash
 npm install
-npm run build:wp
+npm run release
 ```
 
-This builds the Angular widget and copies the compiled assets into `widget-package/blue-search/assets`, so the plugin folder always reflects the widget source in this repo.
+`release` checks that the plugin's `Version:` header matches `readme.txt`'s
+`Stable tag:`, builds `widget2`, copies the bundle into the plugin, and writes
+`release/blue-search-<version>.zip` (plus `release/blue-search.zip`). That zip
+is what you upload to WordPress (Plugins → Add New → Upload Plugin) or submit
+to WordPress.org.
 
----
+`npm run release -- --no-build` packages the existing `widget2/dist` without
+rebuilding.
 
-# WpNgWidget
+## Where widget2 comes from
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.2.0.
+`widget2/` is a copy. The master lives in the private BlueBoot monorepo
+(`assist-app/gpt-chat/src/app/widget2`), where the same widget is built for
+https://blueboot.ai/assets/widget/latest/. Change widget2 there, not here.
 
-## Development server
-
-To start a local development server, run:
+To bring this copy up to date:
 
 ```bash
-ng serve
+npm run sync-widget      # replace ./widget2 with the master (read-only on the monorepo)
+git diff -- widget2      # review what changed
+npm run release
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+or both in one go: `npm run update`.
 
-## Code scaffolding
+The monorepo's location on your machine is read from `local.config.json`
+(git-ignored):
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```json
+{ "monorepo": "~/Documents/bluesearch projects/prod recent" }
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+or from the `BLUESEARCH_MONOREPO` environment variable. When it is set,
+`npm run release` also copies the zip into gpt-chat
+(`src/assets/widget/wordpress/`), so the next `npm run deploy-ui` there
+publishes it at https://blueboot.ai/assets/widget/wordpress/blue-search.zip.
+Without it, everything else works the same: the zip stays in `release/`.
 
-```bash
-ng generate --help
-```
+## Releasing a new version
 
-## Building
+1. Bump `Version:` in `widget-package/blue-search/blue-search.php` and
+   `Stable tag:` in `readme.txt`, and add a `= x.y.z =` changelog entry.
+2. `npm run update` (or `npm run release` if widget2 has not changed).
+3. Install `release/blue-search.zip` on a test site and check the shortcodes.
+4. Commit and push; submit to WordPress.org; deploy gpt-chat for the
+   blueboot.ai download.
 
-To build the project run:
+The plugin has no update checker of its own: WordPress.org allows updates only
+through its own system.
 
-```bash
-ng build
-```
+## License
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+GPL-2.0-or-later.

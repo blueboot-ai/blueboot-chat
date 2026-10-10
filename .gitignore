@@ -57,3 +57,16 @@ widget-package/blue-search-*.zip
 **/shared-library/
 **/*.secret.*
 **/*secrets*
+
+# Plugin build (see README)
+/release/
+/widget2/node_modules/
+/widget2/dist/
+/widget2/.angular/
+/widget2/out-tsc/
+/widget-package/blue-search/assets/
+*.bak
+.DS_Store
+
+# Path to the monorepo on this machine (tools/config.js)
+/local.config.json
