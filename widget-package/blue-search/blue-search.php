@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: BlueSearch
- * Plugin URI:  https://blueboot.ai
+ * Plugin URI:  https://blueboot.ai/bs/home
  * Description: Adds the BlueSearch AI search and chat widget to your site: a chat button, a search box, an icon or a panel.
  * Version:     1.0.34
  * Author:      BlueBoot R&D AS
