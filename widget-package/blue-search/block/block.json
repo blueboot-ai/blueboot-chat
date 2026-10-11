@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "blue-search/widget",
+  "version": "1.0.36",
+  "title": "BlueSearch",
+  "category": "widgets",
+  "description": "AI search and chat that answers visitors from your own website content.",
+  "keywords": ["ai", "search", "chat", "chatbot", "assistant"],
+  "textdomain": "blue-search",
+  "attributes": {
+    "layout": {
+      "type": "string",
+      "enum": ["launcher", "embed", "icon", "popup", "docked"],
+      "default": "embed"
+    },
+    "appId": {
+      "type": "string",
+      "default": ""
+    },
+    "defaultLang": {
+      "type": "string",
+      "default": ""
+    },
+    "width": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": ["wide", "full"]
+  },
+  "example": {
+    "attributes": {
+      "layout": "embed"
+    }
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./editor.css"
+}

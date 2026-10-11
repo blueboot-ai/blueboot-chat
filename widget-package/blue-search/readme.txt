@@ -4,7 +4,7 @@ Tags: ai search, chatbot, site search, ai assistant, live chat
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.35
+Stable tag: 1.0.36
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,13 +28,15 @@ Add an AI assistant to your WordPress site that reads your own pages and answers
 
 = Five ways to show it =
 
+Add the **BlueSearch block** in the block editor and pick a layout, or use a shortcode:
+
 * `[blue-search-launcher]` – **Chat button**: a floating button in the corner of every page.
 * `[blue-search-embed]` – **Search box**: an AI search field inside your page.
 * `[blue-search-embed-icon]` – **Icon**: a compact mark for your header or menu.
 * `[blue-search-embed-popup]` – **Panel**: the conversation already open, over your content.
 * `[blue-search-embed-docked]` – **Docked panel**: the same open panel, as part of the page.
 
-Or turn on the chat button for the whole site from **Settings → BlueSearch**, with no shortcode at all. The assistant's name, logo, colours, welcome text and language are set in your BlueSearch account, so every layout matches without extra configuration.
+Or turn on the chat button for the whole site from **Settings → BlueSearch**, with no block or shortcode at all. The assistant's name, logo, colours, welcome text and language are set in your BlueSearch account, so every layout matches without extra configuration.
 
 The widget is loaded only on pages that use it, and nothing in your theme needs to change.
 
@@ -79,7 +81,9 @@ Site owners should mention their use of BlueSearch in their own privacy policy.
 1. In WordPress, go to **Plugins → Add New**, search for **BlueSearch**, then click **Install Now** and **Activate**.
 2. Create your assistant at https://blueboot.ai: enter your site's address and BlueSearch reads your pages.
 3. Copy your **App ID** from your BlueSearch account.
-4. In WordPress, go to **Settings → BlueSearch**, paste the App ID and tick **Show launcher on all pages**. Or place one of the shortcodes in a page:
+4. In WordPress, go to **Settings → BlueSearch**, paste the App ID and tick **Show the chat button on every page**.
+
+To place it on specific pages instead, add the **BlueSearch** block in the block editor and choose a layout. In other editors, use a shortcode. Once the App ID is saved in Settings, blocks and shortcodes use it automatically, so `appid` can be left out:
 
 `[blue-search-launcher appid="your-app-id"]` (Chat button)
 
@@ -123,6 +127,10 @@ Yes. Your site's product pages are read like any other page, and you can connect
 
 Yes, if you want them to. Live handover can pass the conversation to your team through Slack, Zendesk, Intercom, Chatwoot or LiveChat. If you don't set it up, the widget shows no trace of it.
 
+= How do I add it to one page only? =
+
+In the block editor, add the **BlueSearch** block where you want it and choose a layout in the block settings: chat button, search box, icon, panel or docked panel. In other editors (or page builders), use one of the shortcodes listed under Installation.
+
 = Does the plugin expose API keys? =
 
 No. The plugin does not accept or expose API keys in shortcodes or page markup.
@@ -138,6 +146,15 @@ Yes. See "External services" above for what is sent, when, and to whom.
 3. The chat button opened: visitors can type a question or pick a suggestion.
 
 == Changelog ==
+
+= 1.0.36 =
+
+* New BlueSearch block: add the assistant from the block editor and pick a layout, App ID, language and width in the block settings.
+* Settings page with a "Get started" guide and a link to create your assistant.
+* "Settings" link on the Plugins screen.
+* Blocks and shortcodes use the App ID saved in Settings when they don't set their own.
+* Nothing is output when no App ID is set, instead of an empty widget.
+* All plugin text can now be translated.
 
 = 1.0.35 =
 
@@ -197,6 +214,10 @@ Yes. See "External services" above for what is sent, when, and to whom.
 * Removed manual textdomain loader.
 
 == Upgrade Notice ==
+
+= 1.0.36 =
+
+Adds the BlueSearch block and an easier settings page. Existing shortcodes keep working unchanged.
 
 = 1.0.35 =
 

@@ -1,0 +1,36 @@
+/* Editor preview of the BlueSearch block (the live widget runs on the front end only). */
+.bsrch-block-preview {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border: 1px solid #d5dbe6;
+  border-left: 4px solid #2d4488;
+  border-radius: 4px;
+  background: #f7f9fc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1e1e1e;
+}
+.bsrch-block-preview.is-missing-id {
+  border-left-color: #d63638;
+}
+.bsrch-block-preview__icon {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+}
+.bsrch-block-preview__title {
+  margin: 0 0 2px;
+  font-weight: 600;
+  font-size: 15px;
+}
+.bsrch-block-preview__text {
+  margin: 0;
+  color: #50575e;
+}
+.bsrch-block-preview__warning {
+  margin: 6px 0 0;
+  color: #b32d2e;
+}
