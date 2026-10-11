@@ -133,9 +133,9 @@ Yes. See "External services" above for what is sent, when, and to whom.
 
 == Screenshots ==
 
-1. The chat button, opened on a website: an answer with a link to its source.
-2. The search box placed inside a page.
-3. The settings page: paste your App ID and turn on the chat button for the whole site.
+1. The chat answering a visitor's question from the site's own content.
+2. The search box on a page, with suggested questions to get visitors started.
+3. The chat button opened: visitors can type a question or pick a suggestion.
 
 == Changelog ==
 
