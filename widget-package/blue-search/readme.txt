@@ -1,35 +1,42 @@
-=== BlueSearch ===
+=== BlueSearch – AI Site Search & Chatbot ===
 Contributors: blueboot
-Tags: chat, embed, launcher, angular
+Tags: ai search, chatbot, site search, ai assistant, live chat
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.34
+Stable tag: 1.0.35
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Embeds the BlueSearch AI chat widget in five layouts via shortcodes: chat button, search box, icon, panel, or docked panel.
+AI search and chat that answers visitors' questions from your own website content, in 18 languages, with a link to the source.
 
 == Description ==
 
-BlueSearch adds an AI-powered search and chat widget to your WordPress site, in five layouts:
+Your website already contains the answers. BlueSearch lets visitors simply ask for them.
 
-* `[blue-search-launcher]` – Chat button: a floating launcher button that opens the chat.
-* `[blue-search-embed]` – Search box: an inline, full-width embed.
-* `[blue-search-embed-icon]` – Icon: a compact, inline icon version of the embed.
-* `[blue-search-embed-popup]` – Panel: a panel-style embed of the assistant.
-* `[blue-search-embed-docked]` – Docked panel: the same open panel, as part of the page instead of over it.
+Add an AI assistant to your WordPress site that reads your own pages and answers questions in plain language, with a link to the page each answer came from. No FAQ to write, no content to maintain twice: change a page, and the assistant's answers change with it.
 
-You can also enable the launcher globally from **Settings → BlueSearch**.
+= Why BlueSearch =
 
-BlueSearch can help you:
+* **Answers, not a list of links.** Visitors ask in their own words and get a direct answer, instead of ten search results to dig through.
+* **Grounded in your content.** Answers come from your pages, not from general AI knowledge, and every answer shows its source. When your content doesn't cover something, it says so instead of guessing.
+* **18 languages from content written in one.** A visitor can ask in Polish about a page written in English and get the answer in Polish, without translating your site.
+* **Open around the clock.** It answers at two in the morning and never keeps anyone waiting in a queue.
+* **Hands over to a person.** When a question needs a human, the conversation can continue with your team in Slack, Zendesk, Intercom, Chatwoot or LiveChat.
+* **Learn what visitors want.** See the questions people actually ask, and which ones your site doesn't answer yet.
+* **Webshop aware.** Connect your shop to answer questions about products, stock and orders.
 
-* Answer visitor questions using your website content.
-* Help users find pages, products and services.
-* Reduce repetitive customer support requests.
-* Add an AI assistant without modifying your WordPress theme.
+= Five ways to show it =
 
-Assets are enqueued only when a shortcode (or the global launcher) is present on the page. No API keys are accepted via shortcodes.
+* `[blue-search-launcher]` – **Chat button**: a floating button in the corner of every page.
+* `[blue-search-embed]` – **Search box**: an AI search field inside your page.
+* `[blue-search-embed-icon]` – **Icon**: a compact mark for your header or menu.
+* `[blue-search-embed-popup]` – **Panel**: the conversation already open, over your content.
+* `[blue-search-embed-docked]` – **Docked panel**: the same open panel, as part of the page.
+
+Or turn on the chat button for the whole site from **Settings → BlueSearch**, with no shortcode at all. The assistant's name, logo, colours, welcome text and language are set in your BlueSearch account, so every layout matches without extra configuration.
+
+The widget is loaded only on pages that use it, and nothing in your theme needs to change.
 
 = Source Code =
 
@@ -67,17 +74,12 @@ BlueSearch is a product of BlueBoot R&D AS, https://blueboot.ai
 
 Site owners should mention their use of BlueSearch in their own privacy policy.
 
-== Assets & Downloads ==
-
-The compiled widget files are also published at https://blueboot.ai/assets/widget/latest/ for embedding outside WordPress. To install or update this plugin on a WordPress site, use the WordPress.org plugin directory.
-
 == Installation ==
 
-1. Upload the plugin ZIP through **Plugins → Add New → Upload Plugin**.
-2. Activate the plugin.
-3. Go to **Settings → BlueSearch**.
-4. Enter your BlueSearch App ID.
-5. Enable the global launcher, or insert one of the following shortcodes:
+1. In WordPress, go to **Plugins → Add New**, search for **BlueSearch**, then click **Install Now** and **Activate**.
+2. Create your assistant at https://blueboot.ai: enter your site's address and BlueSearch reads your pages.
+3. Copy your **App ID** from your BlueSearch account.
+4. In WordPress, go to **Settings → BlueSearch**, paste the App ID and tick **Show launcher on all pages**. Or place one of the shortcodes in a page:
 
 `[blue-search-launcher appid="your-app-id"]` (Chat button)
 
@@ -89,11 +91,37 @@ The compiled widget files are also published at https://blueboot.ai/assets/widge
 
 `[blue-search-embed-docked appid="your-app-id"]` (Docked panel)
 
+Optional: add `defaultlang="no"` (or any supported language code) to choose the language for visitors who haven't picked one. Otherwise the widget follows the visitor's browser.
+
 == Frequently Asked Questions ==
 
 = Do I need a BlueSearch account? =
 
-Yes. You need a BlueSearch App ID from your BlueSearch account at https://blueboot.ai.
+Yes. The plugin shows the assistant; the assistant itself runs on the BlueSearch service. Create one at https://blueboot.ai to get your App ID.
+
+= What does it cost? =
+
+You can try it free for one month, with every feature included. After that you choose pay as you go (you set a budget and pay only for what is used) or a fixed monthly managed licence. See https://blueboot.ai/bs/pricing for prices.
+
+= How does the assistant know about my site? =
+
+BlueSearch reads the pages of your website and keeps them up to date by re-reading your site regularly. You can also add documents and other sources. Answers are written from that content only, and each answer links to the page it came from.
+
+= Which languages does it support? =
+
+18: Arabic, Chinese, Danish, English, Finnish, French, German, Hebrew, Italian, Japanese, Korean, Norwegian, Polish, Portuguese, Russian, Spanish, Swedish and Ukrainian. Visitors can ask in any of them, whatever language your site is written in.
+
+= Will it slow down my site? =
+
+The widget is loaded only on pages where it is used, and it loads after your page content. Pages without a shortcode (and without the global chat button) load nothing from this plugin.
+
+= Can I use it with WooCommerce? =
+
+Yes. Your site's product pages are read like any other page, and you can connect your shop so the assistant can also answer questions about stock, prices and orders.
+
+= Can visitors reach a real person? =
+
+Yes, if you want them to. Live handover can pass the conversation to your team through Slack, Zendesk, Intercom, Chatwoot or LiveChat. If you don't set it up, the widget shows no trace of it.
 
 = Does the plugin expose API keys? =
 
@@ -103,17 +131,17 @@ No. The plugin does not accept or expose API keys in shortcodes or page markup.
 
 Yes. See "External services" above for what is sent, when, and to whom.
 
-= Can I use it with WooCommerce? =
-
-Yes. If your BlueSearch application has been configured with your WooCommerce catalogue, it can help visitors discover products through natural-language search.
-
 == Screenshots ==
 
-1. Floating BlueSearch launcher.
-2. Inline BlueSearch embed.
-3. Plugin settings page.
+1. The chat button, opened on a website: an answer with a link to its source.
+2. The search box placed inside a page.
+3. The settings page: paste your App ID and turn on the chat button for the whole site.
 
 == Changelog ==
+
+= 1.0.35 =
+
+* Clearer plugin listing: name, description, installation steps and FAQ.
 
 = 1.0.34 =
 
@@ -169,6 +197,15 @@ Yes. If your BlueSearch application has been configured with your WooCommerce ca
 * Removed manual textdomain loader.
 
 == Upgrade Notice ==
+
+= 1.0.35 =
+
+Listing text only. No code changes.
+
+= 1.0.34 =
+
+Current widget, five layouts, and the language now follows the visitor instead of being forced to Norwegian.
+
 
 = 1.0.33 =
 
